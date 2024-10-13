@@ -2,9 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
+
 
 public class BoardScript : MonoBehaviour
 {
@@ -12,68 +11,133 @@ public class BoardScript : MonoBehaviour
     private GameObject board_obj;
 
     [SerializeField]
+    private EventSystem event_system;
+
+    [SerializeField]
     private GameObject selected_tile_prefab;
 
-   [SerializeField] private GameObject selected_tile_instance;
+    private static GameObject selected_tile_instance;
 
-    private GameObject[,] board_array;
-
-    private GameObject current_obj_selected = null;
 
     // Start is called before the first frame update
     void Start()
     {
-
         List<Transform> child_list = BoardLibrary.CollectChildren(board_obj.transform);
+        GameObject[,] board_array;
         board_array = BoardLibrary.ListTo2dGrid(child_list, true);
-
-        
-        (int, int) origin = (0, 0);
-        (int, int) target = (4, 5);
-         //List<(int, int)> path= AIScanner.FindPath(origin,target,GetWidthAndHeight());
-         List<(int, int)> path= AIScanner.FindPossiblePaths(origin,target).ToList();
-         AIScanner.PrintPath(path);
     }
-
-    
 
     // Update is called once per frame
     void Update() { }
 
-    private void ChangeColorAlpha(Image image, float alpha)
+    public void SetSelTilePos(Vector3 new_position)
     {
-        Color new_color = image.color;
-        new_color.a = alpha;
-        image.color = new_color;
+        
+        if (selected_tile_instance == null)
+        {
+            selected_tile_instance = Instantiate(selected_tile_prefab, board_obj.transform);
+            selected_tile_instance.transform.localScale = Vector3.one;
+            selected_tile_instance.transform.localPosition = new_position;
+        }
+        else
+        {
+          
+            if (new_position != selected_tile_instance.transform.localPosition)
+            {
+
+                Vector3 origin_pos = selected_tile_instance.transform.localPosition;
+                (int, int) origin = ((int)origin_pos.x, (int)origin_pos.y);
+                (int, int) normalized_origin=NormalizePos(origin);
+                Debug.Log($"origin: {origin}");
+                Debug.Log($"Normalized origin: {normalized_origin}");
+
+                Vector3 target_pos = new_position;
+                (int, int) target = ((int)target_pos.x, (int)target_pos.y);
+                (int, int) normalized_target=NormalizePos(target);
+                Debug.Log($"target: {target}");
+                Debug.Log($"Normalized target: {normalized_target}");
+                Debug.Log($"DeNormalized target: {ReverseNormalizePos(normalized_target)}");
+
+                List<(int, int)> path = AIScanner.FindPossiblePaths(normalized_origin, normalized_target).ToList();
+                //AIScanner.PrintPath(path);
+
+                StartCoroutine(MoveObjectCoroutine(selected_tile_instance.transform, path));
+                //HandleTileMovement(origin, target);
+            }
+            else
+            {
+                Destroy(selected_tile_instance);
+            }
+        }
     }
 
-    private void ChangeColor(Image image, Color color)
+    private IEnumerator MoveObjectCoroutine(Transform tile, List<(int, int)> path)
     {
-        image.color = color;
+        Debug.Log("Start coroutine");
+        event_system.enabled = false;
+        
+        Vector3 start_pos = tile.localPosition;
+        Vector3 target_next_pos;
+        float journeyLength;
+        float speed = 50f;
+        float startTime;
+
+        for (int i = 1; i < path.Count; i++)
+        {
+            (int,int) reverse_normalize_path=ReverseNormalizePos(path[i]);
+            target_next_pos= new Vector3(reverse_normalize_path.Item1,reverse_normalize_path.Item2,0);
+
+            journeyLength= Vector3.Distance(start_pos, target_next_pos);
+            startTime=Time.time;
+            //Debug.Log($"Next pos: {target_next_pos}");
+
+            // Continue moving until the object reaches the target position
+            while (tile.localPosition != target_next_pos)
+            {
+                float distanceCovered = (Time.time - startTime) * speed;
+                float fractionOfJourney = distanceCovered / journeyLength;
+
+                tile.localPosition = Vector3.Lerp(start_pos, target_next_pos, fractionOfJourney);
+
+                yield return null; // Wait for the next frame
+            }
+            start_pos=target_next_pos;
+            
+        }
+        event_system.enabled =true;
+        Debug.Log("End coroutine");
+
     }
 
-    private void OnObjectHovered(GameObject obj)
-    {
-        ChangeColorAlpha(obj.GetComponent<Image>(), 0.5f);
+    public (int,int) NormalizePos((int,int) input){
+        int min_value=8,step_size=16;
+
+        int output_x=(input.Item1-min_value)/step_size;
+        int output_y=(input.Item2-min_value)/step_size;
+        
+        (int,int) output=(output_x,output_y);
+        return output;
+    }
+    public (int,int) ReverseNormalizePos((int,int) input){
+        int min_value=8,step_size=16;
+
+        int output_x=(input.Item1*step_size)+min_value;
+        int output_y=(input.Item2*step_size)+min_value;
+        (int,int) output=(output_x,output_y);
+        return output;
     }
 
-    public void OnObjectExited(GameObject obj)
+    public Vector3 GetSelTilePos()
     {
-        ChangeColorAlpha(obj.GetComponent<Image>(), 1f);
+        if (selected_tile_instance == null)
+        {
+            selected_tile_instance = Instantiate(selected_tile_prefab, board_obj.transform);
+        }
+
+        return selected_tile_instance.transform.position;
     }
 
-    public (int, int) GetWidthAndHeight()
-    {
-        return (board_array.GetLength(1), board_array.GetLength(0));
-    }
+    
 
-    public int GetWidth()
-    {
-        return board_array.GetLength(1);
-    }
 
-    public int GetHeight()
-    {
-        return board_array.GetLength(0);
-    }
 }
