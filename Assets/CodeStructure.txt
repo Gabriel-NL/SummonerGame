@@ -1,0 +1,18 @@
+Board Controller Class 
+-private (int,int) board_grid;
+
+void Start(){
+    InitializeBoard();
+}
+
+private void InitializeBoard();
+//Gets all children in parent board, and add them to the grid.
+
+private void AddInteractivity();
+//Iterates over all elements on board, and add "On click", "on hover" functions.
+
+
+Server?
+
+
+
