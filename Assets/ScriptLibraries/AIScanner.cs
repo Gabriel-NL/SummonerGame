@@ -6,80 +6,19 @@ using UnityEngine;
 
 public class AIScanner : MonoBehaviour
 {
-    public static List<(int, int)> FindPath(
-        (int, int) origin,
-        (int, int) target,
-        (int, int) array_size
-    )
-    {
-        List<(int, int)> path = new List<(int, int)>();
-        path.Add(origin);
 
-        (int, int) current_pos = origin;
-        (int, int) bump = (3, 3);
-        (int, int)[] bumps = new (int, int)[] { (1, 1), (2, 2), (3, 3), (4, 4) };
-
-        while (current_pos != target)
-        {
-            (int, int) direction = GetNextStepDirection(current_pos, target);
-            //Debug.Log($"Direction: {direction}");
-            current_pos.Item1 += direction.Item1;
-            current_pos.Item2 += direction.Item2;
-
-            path.Add(current_pos);
-
-            // Check if the current position is the bump
-            if (current_pos == bump)
-            {
-                Debug.Log("Hit a bump. Stopping path.");
-                return path; // Stop and return the path if we hit the bump
-            }
-        }
-
-        return path;
-    }
-
-    private static (int, int) GetNextStepDirection((int, int) current_pos, (int, int) target_pos)
-    {
-        (int, int) direction = (0, 0);
-
-        int current_pos_x,
-            current_pos_y;
-        (current_pos_x, current_pos_y) = current_pos;
-
-        int target_pos_x,
-            target_pos_y;
-        (target_pos_x, target_pos_y) = target_pos;
-
-        // Determine direction on the X axis
-        direction.Item1 = target_pos_x.CompareTo(current_pos_x); // Move right (+1), left (-1), or stay (0)
-        direction.Item2 = target_pos_y.CompareTo(current_pos_y); // Move up (+1), down (-1), or stay (0)
-
-        // Instead of making 2 steps, do one.
-        if (direction.Item1 != 0 && direction.Item2 != 0)
-        {
-            // Generate a random number, 0 or 1 using Unity's Random
-            int choice = UnityEngine.Random.Range(0, 2); // 0 or 1
-
-            // Set one of the values to 0 based on the random choice
-            if (choice == 0)
-            {
-                direction.Item1 = 0; // Set Item1 to 0
-            }
-            else
-            {
-                direction.Item2 = 0; // Set Item2 to 0
-            }
-        }
-
-        return direction;
-    }
-
-    public static (int, int)[] FindPossiblePaths((int, int) origin, (int, int) target)
+    public static (int, int)[] FindPossiblePaths((int, int) origin, (int, int) target , (int, int) map_dimensions)
     {
         List<(int, int)> possible_path = new List<(int, int)>();
         (int, int)[] possible_path_array;
-        (int, int)[] bumps = new (int, int)[] { (0, 2) };
+        List<(int, int)> bumps_list= new List<(int, int)> ();
+
+        bumps_list.AddRange(SetMapLimits(map_dimensions));
+
+        bumps_list.Add((0, 2));
+        (int, int)[] bumps = bumps_list.ToArray();
+
+
         (int, int) current_pos = new(origin.Item1, origin.Item2);
 
         possible_path.Add(current_pos);
@@ -102,6 +41,7 @@ public class AIScanner : MonoBehaviour
                 if (possible_path.Count < 2)
                 {
                     possible_path_array = possible_path.ToArray();
+                    Debug.Log("Impossible to reach the current path...");
 
                     return possible_path_array;
                 }
@@ -157,6 +97,35 @@ public class AIScanner : MonoBehaviour
         return possible_path_array;
     }
 
+    private static List<(int, int)> SetMapLimits((int,int) width_and_height){
+        
+        List<(int, int)> bumps_list = new List<(int,int)>();
+
+        //Add bumps for negative x and y limits
+        for (int i = 0; i == width_and_height.Item1; i++)
+        {
+            bumps_list.Add((-1,i));
+        }
+        for (int i = 0; i == width_and_height.Item2; i++)
+        {
+            bumps_list.Add((i,-1));
+        }
+
+        //Add bumps for positive x and y limits
+        for (int i = 0; i == width_and_height.Item1; i++)
+        {
+            bumps_list.Add((width_and_height.Item1,i));
+        }
+        for (int i = 0; i == width_and_height.Item2; i++)
+        {
+            bumps_list.Add((i,width_and_height.Item2));
+        }
+
+
+
+
+        return bumps_list;
+    }
     private static (int, int) GetNextStepDirection(
         (int, int) current_pos,
         (int, int) target_pos,
@@ -213,7 +182,7 @@ public class AIScanner : MonoBehaviour
         int new_y = current_pos.Item2 + direction.Item2;
 
         // Return the Manhattan distance from the new position to the target position
-        return Math.Abs(target_pos.Item1 - new_x) + Math.Abs(target_pos.Item2 - new_y);
+        return System.Math.Abs(target_pos.Item1 - new_x) + System.Math.Abs(target_pos.Item2 - new_y);
     }
 
     // Helper method to check if the direction is blocked

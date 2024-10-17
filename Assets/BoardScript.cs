@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 
 public class BoardScript : MonoBehaviour
@@ -18,13 +19,20 @@ public class BoardScript : MonoBehaviour
 
     private static GameObject selected_tile_instance;
 
+    private static (int,int) board_array_size;
+
+
+
 
     // Start is called before the first frame update
     void Start()
     {
         List<Transform> child_list = BoardLibrary.CollectChildren(board_obj.transform);
+        BoardLibrary.ShowAllCoordinates(child_list,false);
         GameObject[,] board_array;
         board_array = BoardLibrary.ListTo2dGrid(child_list, true);
+        board_array_size=BoardLibrary.GetWidthAndHeight(board_array);
+
     }
 
     // Update is called once per frame
@@ -38,6 +46,7 @@ public class BoardScript : MonoBehaviour
             selected_tile_instance = Instantiate(selected_tile_prefab, board_obj.transform);
             selected_tile_instance.transform.localScale = Vector3.one;
             selected_tile_instance.transform.localPosition = new_position;
+            
         }
         else
         {
@@ -46,7 +55,11 @@ public class BoardScript : MonoBehaviour
             {
 
                 Vector3 origin_pos = selected_tile_instance.transform.localPosition;
+                
+                
+                //To do: Currently, the origin gets the current position and transits to it, use an abstraction of current grid for movement.
                 (int, int) origin = ((int)origin_pos.x, (int)origin_pos.y);
+
                 (int, int) normalized_origin=NormalizePos(origin);
                 Debug.Log($"origin: {origin}");
                 Debug.Log($"Normalized origin: {normalized_origin}");
@@ -58,7 +71,7 @@ public class BoardScript : MonoBehaviour
                 Debug.Log($"Normalized target: {normalized_target}");
                 Debug.Log($"DeNormalized target: {ReverseNormalizePos(normalized_target)}");
 
-                List<(int, int)> path = AIScanner.FindPossiblePaths(normalized_origin, normalized_target).ToList();
+                List<(int, int)> path = AIScanner.FindPossiblePaths(normalized_origin, normalized_target,board_array_size).ToList();
                 //AIScanner.PrintPath(path);
 
                 StartCoroutine(MoveObjectCoroutine(selected_tile_instance.transform, path));

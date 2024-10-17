@@ -153,18 +153,27 @@ public class BoardLibrary : MonoBehaviour
         new_color.a = alpha;
         image.color = new_color;
     }
+    public static void SetColorAlpha(Image image, Color new_color,float alpha)
+    {
+        if (new_color==null)
+        {
+            new_color = image.color;
+        }
+        new_color.a = alpha;
+        image.color = new_color;
+    }
 
-    private (int, int) GetWidthAndHeight(GameObject[,] board_array)
+    public static (int, int) GetWidthAndHeight(GameObject[,] board_array)
     {
         return (board_array.GetLength(1), board_array.GetLength(0));
     }
 
-    private int GetWidth(GameObject[,] board_array)
+    public static int GetWidth(GameObject[,] board_array)
     {
         return board_array.GetLength(1);
     }
 
-    private int GetHeight(GameObject[,] board_array)
+    public static int GetHeight(GameObject[,] board_array)
     {
         return board_array.GetLength(0);
     }
