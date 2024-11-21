@@ -6,6 +6,8 @@ public class Players_script : MonoBehaviour
 {
     // References to the labels
     public TextMeshProUGUI counter_1_label, counter_2_label;
+    public GameObject player_prefab;
+    private GameObject[] players= new GameObject[2];
 
     private int counter = 10; // Counter to be displayed
     private TextMeshProUGUI activeLabel; // Currently active label
@@ -19,6 +21,7 @@ public class Players_script : MonoBehaviour
 
         StartCoroutine(IncrementCounter());
         StartCoroutine(SwitchLabelEvery10Seconds());
+        InitializePlayers();
     }
 
     private IEnumerator IncrementCounter()
@@ -56,5 +59,13 @@ public class Players_script : MonoBehaviour
             counter_1_label.text = "";
 
         Debug.Log("Switched Active Label to: " + activeLabel.name);
+    }
+
+    private void InitializePlayers(){
+        BoardScript_V2 board_script= gameObject.GetComponent<BoardScript_V2>();
+        players[0]=Instantiate(player_prefab);
+        board_script.AddToEntityTable((0,4),players[0]);
+        players[1]=Instantiate(player_prefab);
+        board_script.AddToEntityTable((8,4),players[1]);
     }
 }

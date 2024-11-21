@@ -127,34 +127,27 @@ public class BoardLibrary : MonoBehaviour
 }
 
 
-    public static float RevertNormalization(int gridValue, float min, float max, int gridSize)
-    {
-        float stepSize = (max - min) / gridSize; // Calculate the step size
-        return gridValue * stepSize + min; // Scale and shift back
-    }
 
-    public static (float, float) RevertNormalization(
-        (int, int) gridValue,
-        (float, float) dimensions_w_h,
-        (int, int) gridSize
-    )
-    {
-        // Calculate the min and max bounds for both X and Y
-        float min_x = -dimensions_w_h.Item1 / 2;
-        float max_x = dimensions_w_h.Item1 / 2;
-        float min_y = -dimensions_w_h.Item2 / 2;
-        float max_y = dimensions_w_h.Item2 / 2;
+public static (float, float) RevertNormalization(
+    (int, int) gridValue,
+    (float, float) dimensions_w_h,
+    (int, int) gridSize
+)
+{
 
-        // Calculate step sizes
-        float stepSizeX = (max_x - min_x) / gridSize.Item1;
-        float stepSizeY = (max_y - min_y) / gridSize.Item2;
+    float stepSizeX= dimensions_w_h.Item1/ gridSize.Item1;
+    float stepSizeY= dimensions_w_h.Item2/ gridSize.Item2;
+    
+    float new_x=gridValue.Item1*stepSizeX-(dimensions_w_h.Item1-stepSizeX)/2;
+    float new_y=gridValue.Item2*stepSizeY-(dimensions_w_h.Item2-stepSizeY)/2;
 
-        // Revert grid values back to world positions
-        float worldX = gridValue.Item1 * stepSizeX + min_x;
-        float worldY = gridValue.Item2 * stepSizeY + min_y;
+    (float, float) denormalized_value = (new_x, new_y);
+     
+    Debug.Log("Denormalization: " + denormalized_value);
+    return denormalized_value;
+}
 
-        return (worldX, worldY);
-    }
+
 
     public static GameObject FindChildWithTag(Transform parent, string tag)
     {

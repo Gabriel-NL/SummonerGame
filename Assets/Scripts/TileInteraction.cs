@@ -30,7 +30,7 @@ public class TileInteraction
         // Perform any action on click
         BoardLibrary.SetColorAlpha(gameObject.GetComponent<Image>(),1f);
 
-        Debug.Log($"Obj: {gameObject.name}");
+        //Debug.Log($"Obj: {gameObject.name}");
         main_script = GameObject.FindWithTag("GameController").GetComponent<BoardScript_V2>();
         main_script.SetSelectorTilePos(gameObject);
       
