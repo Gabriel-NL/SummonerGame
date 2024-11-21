@@ -5,7 +5,6 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-
 public class BoardScript : MonoBehaviour
 {
     [SerializeField]
@@ -21,9 +20,6 @@ public class BoardScript : MonoBehaviour
 
     private static (int,int) board_array_size;
 
-
-
-
     // Start is called before the first frame update
     void Start()
     {
@@ -32,11 +28,14 @@ public class BoardScript : MonoBehaviour
         GameObject[,] board_array;
         board_array = BoardLibrary.ListTo2dGrid(child_list, true);
         board_array_size=BoardLibrary.GetWidthAndHeight(board_array);
-
+        
     }
+
 
     // Update is called once per frame
     void Update() { }
+
+    
 
     public void SetSelTilePos(Vector3 new_position)
     {
@@ -59,7 +58,7 @@ public class BoardScript : MonoBehaviour
                 
                 //To do: Currently, the origin gets the current position and transits to it, use an abstraction of current grid for movement.
                 (int, int) origin = ((int)origin_pos.x, (int)origin_pos.y);
-
+                
                 (int, int) normalized_origin=NormalizePos(origin);
                 Debug.Log($"origin: {origin}");
                 Debug.Log($"Normalized origin: {normalized_origin}");
@@ -92,7 +91,7 @@ public class BoardScript : MonoBehaviour
         Vector3 start_pos = tile.localPosition;
         Vector3 target_next_pos;
         float journeyLength;
-        float speed = 50f;
+        float speed = 100f;
         float startTime;
 
         for (int i = 1; i < path.Count; i++)
@@ -122,6 +121,8 @@ public class BoardScript : MonoBehaviour
 
     }
 
+    
+
     public (int,int) NormalizePos((int,int) input){
         int min_value=8,step_size=16;
 
@@ -150,7 +151,4 @@ public class BoardScript : MonoBehaviour
         return selected_tile_instance.transform.position;
     }
 
-    
-
-
-}
+    }

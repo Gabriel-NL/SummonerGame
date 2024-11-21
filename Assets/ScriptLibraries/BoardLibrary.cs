@@ -54,6 +54,123 @@ public class BoardLibrary : MonoBehaviour
         return board_map_filled;
     }
 
+    public static GameObject[,] CreateNewBoard(
+        int grid_x,
+        int grid_y,
+        GameObject tile,
+        GameObject parent
+    )
+    {
+        GameObject[,] new_board = new GameObject[grid_x, grid_y];
+        //W.I.P
+        //width=200 height 200
+        //
+
+        float parent_tile_size_width = parent.GetComponent<RectTransform>().rect.width;
+        float parent_tile_size_height = parent.GetComponent<RectTransform>().rect.height;
+        float new_tile_size_width = parent_tile_size_width / grid_x;
+        float new_tile_size_height = parent_tile_size_height / grid_y;
+
+        for (int x = 0; x < grid_x; x++)
+        {
+            for (int y = 0; y < grid_y; y++)
+            {
+                GameObject new_tile = Instantiate(tile);
+                new_tile.name = $"X:{x}/Y:{y}";
+
+                RectTransform rect = new_tile.GetComponent<RectTransform>();
+                rect.sizeDelta = new Vector2(new_tile_size_width, new_tile_size_height);
+
+                // Calculate the X and Y positions
+                float offset_x = (grid_x - 1) * new_tile_size_width / 2; // Center grid on the X-axis
+                float offset_y = (grid_y - 1) * new_tile_size_height / 2; // Center grid on the Y-axis
+
+                float pos_x = x * new_tile_size_width - offset_x; // X position
+                float pos_y = y * new_tile_size_height - offset_y; // Y position
+                rect.localPosition = new Vector2(pos_x, pos_y);
+
+                // Optionally, set the new tile's parent
+                new_tile.transform.SetParent(parent.transform, false);
+                new_board[x, y] = new_tile;
+            }
+        }
+
+        return new_board;
+    }
+
+    public static GameObject[,] InitializeNewLayer(GameObject[,] map_layer)
+    {
+        int width = map_layer.GetLength(0); // Get the number of rows (first dimension)
+        int height = map_layer.GetLength(1); // Get the number of columns (second dimension)
+        GameObject[,] new_layer = new GameObject[width, height];
+        return new_layer;
+    }
+
+    public static (int, int) NormalizeStepValue(
+    (float, float) value,
+    (float, float) dimensions_w_h,
+    (int, int) gridSize
+)
+{
+    // Calculate the step size for each grid cell
+    float stepSizeX = dimensions_w_h.Item1 / (gridSize.Item1 - 1);
+    float stepSizeY = dimensions_w_h.Item2 / (gridSize.Item2 - 1);
+
+    // Normalize the coordinates
+    int new_x = Mathf.RoundToInt((value.Item1 + (dimensions_w_h.Item1 / 2)) / stepSizeX);
+    int new_y = Mathf.RoundToInt((value.Item2 + (dimensions_w_h.Item2 / 2)) / stepSizeY);
+
+    (int, int) normalized_value=(new_x, new_y);
+    // Return the normalized grid indices
+    //Debug.Log($"Normalized Value: {normalized_value}");
+    return normalized_value;
+}
+
+
+    public static float RevertNormalization(int gridValue, float min, float max, int gridSize)
+    {
+        float stepSize = (max - min) / gridSize; // Calculate the step size
+        return gridValue * stepSize + min; // Scale and shift back
+    }
+
+    public static (float, float) RevertNormalization(
+        (int, int) gridValue,
+        (float, float) dimensions_w_h,
+        (int, int) gridSize
+    )
+    {
+        // Calculate the min and max bounds for both X and Y
+        float min_x = -dimensions_w_h.Item1 / 2;
+        float max_x = dimensions_w_h.Item1 / 2;
+        float min_y = -dimensions_w_h.Item2 / 2;
+        float max_y = dimensions_w_h.Item2 / 2;
+
+        // Calculate step sizes
+        float stepSizeX = (max_x - min_x) / gridSize.Item1;
+        float stepSizeY = (max_y - min_y) / gridSize.Item2;
+
+        // Revert grid values back to world positions
+        float worldX = gridValue.Item1 * stepSizeX + min_x;
+        float worldY = gridValue.Item2 * stepSizeY + min_y;
+
+        return (worldX, worldY);
+    }
+
+    public static GameObject FindChildWithTag(Transform parent, string tag)
+    {
+        // Loop through all the children of the parent
+        foreach (Transform child in parent)
+        {
+            if (child.CompareTag(tag)) // Check if the child's tag matches
+            {
+                return child.gameObject;
+            }
+        }
+
+        // Return null if no child with the specified tag is found
+        return null;
+    }
+
     public static void ShowAllCoordinates(List<Transform> childTransforms, bool is_top_down)
     {
         List<float> unique_x_values = GetCoordinateUniqueValues('x', childTransforms);
@@ -153,9 +270,10 @@ public class BoardLibrary : MonoBehaviour
         new_color.a = alpha;
         image.color = new_color;
     }
-    public static void SetColorAlpha(Image image, Color new_color,float alpha)
+
+    public static void SetColorAlpha(Image image, Color new_color, float alpha)
     {
-        if (new_color==null)
+        if (new_color == null)
         {
             new_color = image.color;
         }

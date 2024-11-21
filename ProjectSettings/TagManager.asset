@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Sel_tile
   - EventSystem
+  - Entity
   layers:
   - Default
   - TransparentFX

@@ -8,7 +8,7 @@ public class TileInteraction
         IPointerExitHandler,
         IPointerClickHandler
 {
-    BoardScript main_script;
+    BoardScript_V2 main_script;
     bool visible=false;
 
     // This will be called when the mouse pointer enters the UI element
@@ -31,8 +31,10 @@ public class TileInteraction
         BoardLibrary.SetColorAlpha(gameObject.GetComponent<Image>(),1f);
 
         Debug.Log($"Obj: {gameObject.name}");
-        main_script = GameObject.FindWithTag("GameController").GetComponent<BoardScript>();
-        main_script.SetSelTilePos(gameObject.transform.localPosition);
+        main_script = GameObject.FindWithTag("GameController").GetComponent<BoardScript_V2>();
+        main_script.SetSelectorTilePos(gameObject);
       
     }
+
+
 }
