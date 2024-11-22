@@ -7,6 +7,8 @@ TagManager:
   - Sel_tile
   - EventSystem
   - Entity
+  - Player_1_tag
+  - Player_2_tag
   layers:
   - Default
   - TransparentFX

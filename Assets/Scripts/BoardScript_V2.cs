@@ -36,7 +36,7 @@ public class BoardScript_V2 : MonoBehaviour
         RectTransform board_rect = board_obj.GetComponent<RectTransform>();
         board_rect_width_and_height = (board_rect.rect.width, board_rect.rect.height);
 
-        //GameObject[,]board = BoardLibrary.CreateNewBoard(9,9,tile_prefab,board_obj);
+        //board_map_layer = BoardLibrary.CreateNewBoard(9,9,tile_prefab,board_obj);
         List<Transform> child_list = BoardLibrary.CollectChildren(board_obj.transform);
 
         board_map_layer = BoardLibrary.ListTo2dGrid(child_list, true);
@@ -44,7 +44,6 @@ public class BoardScript_V2 : MonoBehaviour
         board_player_layer = BoardLibrary.InitializeNewLayer(board_map_layer);
 
         board_grid_width_and_height = BoardLibrary.GetWidthAndHeight(board_map_layer);
-
     }
 
     public void SetSelectorTilePos(GameObject target_obj)
@@ -69,23 +68,34 @@ public class BoardScript_V2 : MonoBehaviour
             Destroy(selected_tile_instance);
             return;
         }
-        
-        SetPositionOnGrid(instance_transform.localPosition);
-        GameObject player_obj = board_entity_layer[current_selection_coord.Item1,current_selection_coord.Item2];
 
-        bool verify_existance=board_entity_layer[current_selection_coord.Item1,current_selection_coord.Item2];
-        Debug.Log(verify_existance);
-        
-        if (player_obj != null)
-        {
-            MoveObject(player_obj, target_obj.transform);
-            Destroy(selected_tile_instance);
-        }
-        else
+        SetPositionOnGrid(instance_transform.localPosition);
+        GameObject entity_obj = board_entity_layer[
+            current_selection_coord.Item1,
+            current_selection_coord.Item2
+        ];
+
+        if (entity_obj == null)
         {
             selected_tile_instance.transform.localPosition = target_transform.localPosition;
             SetPositionOnGrid(instance_transform.localPosition);
+            return;
         }
+        EntityInteraction entity = entity_obj.GetComponent<EntityInteraction>();
+        if (entity == null)
+        {
+            selected_tile_instance.transform.localPosition = target_transform.localPosition;
+            SetPositionOnGrid(instance_transform.localPosition);
+            return;
+        }
+        if (entity.GetPermission() == false)
+        {
+            selected_tile_instance.transform.localPosition = target_transform.localPosition;
+            SetPositionOnGrid(instance_transform.localPosition);
+            return;
+        }
+        MoveObject(entity_obj, target_obj.transform);
+        Destroy(selected_tile_instance);
     }
 
     private void SetPositionOnGrid(Vector3 position)
@@ -102,7 +112,6 @@ public class BoardScript_V2 : MonoBehaviour
 
     private void MoveObject(GameObject entity, Transform target)
     {
-        
         RectTransform board_rect = board_obj.GetComponent<RectTransform>();
         float size_x = board_rect.rect.width;
         float size_y = board_rect.rect.height;
@@ -110,7 +119,6 @@ public class BoardScript_V2 : MonoBehaviour
         Vector3 origin_pos = entity.transform.localPosition;
 
         Vector3 target_pos = target.transform.localPosition;
-        
 
         (int, int) origin_x_y_normalized = BoardLibrary.NormalizeStepValue(
             (origin_pos.x, origin_pos.y),
@@ -133,12 +141,14 @@ public class BoardScript_V2 : MonoBehaviour
             .ToList();
 
         StartCoroutine(MoveObjectCoroutine(entity.transform, path, board_grid_width_and_height));
-        int old_x, old_y;
-        (old_x,old_y)=origin_x_y_normalized;
-        int new_x, new_y;
-        (new_x, new_y)=target_x_y_normalized;
-        board_entity_layer[new_x, new_y]=board_entity_layer[old_x, old_y];
-        board_entity_layer[old_x, old_y]=null;
+        int old_x,
+            old_y;
+        (old_x, old_y) = origin_x_y_normalized;
+        int new_x,
+            new_y;
+        (new_x, new_y) = target_x_y_normalized;
+        board_entity_layer[new_x, new_y] = board_entity_layer[old_x, old_y];
+        board_entity_layer[old_x, old_y] = null;
     }
 
     private IEnumerator MoveObjectCoroutine(
@@ -191,17 +201,17 @@ public class BoardScript_V2 : MonoBehaviour
             start_pos = target_next_pos;
         }
         event_system.enabled = true;
-        
 
         Debug.Log("End coroutine");
     }
 
-    public void AddToEntityTable((int,int) grid_coord, GameObject entity){
-
+    public void AddToEntityTable((int, int) grid_coord, GameObject entity)
+    {
         entity.transform.SetParent(board_obj.transform);
-        entity.transform.localPosition=board_map_layer[grid_coord.Item1,grid_coord.Item2].transform.localPosition;
-        entity.transform.localScale= Vector3.one;
-        board_entity_layer[grid_coord.Item1,grid_coord.Item2]=entity ;
-
+        entity.transform.localPosition = board_map_layer[grid_coord.Item1, grid_coord.Item2]
+            .transform
+            .localPosition;
+        entity.transform.localScale = Vector3.one;
+        board_entity_layer[grid_coord.Item1, grid_coord.Item2] = entity;
     }
 }
