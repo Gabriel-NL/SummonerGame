@@ -17,7 +17,8 @@ public class BoardScript_V2 : MonoBehaviour
     private GameObject tile_prefab,
         selected_tile_prefab;
 
-    private static GameObject selected_tile_instance;
+    private SelectionTile sel_tile_script;
+
 
     private static (int, int) board_grid_width_and_height;
     private static (float, float) board_rect_width_and_height;
@@ -33,6 +34,9 @@ public class BoardScript_V2 : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        GameObject sel_tile=Instantiate(selected_tile_prefab);
+        sel_tile_script=sel_tile.GetComponent<SelectionTile>();
+
         RectTransform board_rect = board_obj.GetComponent<RectTransform>();
         board_rect_width_and_height = (board_rect.rect.width, board_rect.rect.height);
 
@@ -46,56 +50,47 @@ public class BoardScript_V2 : MonoBehaviour
         board_grid_width_and_height = BoardLibrary.GetWidthAndHeight(board_map_layer);
     }
 
-    public void SetSelectorTilePos(GameObject target_obj)
-    {
-        Transform target_transform = target_obj.transform;
-        RectTransform instance_transform;
-        if (selected_tile_instance == null)
-        {
-            Debug.Log("Initializing selection tile");
-            selected_tile_instance = Instantiate(selected_tile_prefab, board_obj.transform);
-            instance_transform = selected_tile_instance.GetComponent<RectTransform>();
-            instance_transform.localScale = Vector3.one;
-            instance_transform.localPosition = target_transform.localPosition;
-
-            SetPositionOnGrid(instance_transform.localPosition);
-            return;
-        }
-        instance_transform = selected_tile_instance.GetComponent<RectTransform>();
-
-        if (target_transform.localPosition == selected_tile_instance.transform.localPosition)
-        {
-            Destroy(selected_tile_instance);
-            return;
-        }
-
-        SetPositionOnGrid(instance_transform.localPosition);
-        GameObject entity_obj = board_entity_layer[
+public void UpdateSelTilePosition(GameObject target_obj){
+    Transform target_transform = target_obj.transform;
+    SetPositionOnGrid(target_transform.localPosition);
+    Vector3 local_position= sel_tile_script.GetLocalPosition();
+    GameObject entity_obj = board_entity_layer[
             current_selection_coord.Item1,
             current_selection_coord.Item2
         ];
 
+    
         if (entity_obj == null)
         {
-            selected_tile_instance.transform.localPosition = target_transform.localPosition;
-            SetPositionOnGrid(instance_transform.localPosition);
+            local_position = target_transform.localPosition;
+            SetPositionOnGrid(target_transform.localPosition);
             return;
         }
+        
         EntityInteraction entity = entity_obj.GetComponent<EntityInteraction>();
         if (entity == null)
         {
-            selected_tile_instance.transform.localPosition = target_transform.localPosition;
-            SetPositionOnGrid(instance_transform.localPosition);
+            local_position = target_transform.localPosition;
+            SetPositionOnGrid(target_transform.localPosition);
             return;
         }
+
         if (entity.GetPermission() == false)
         {
             selected_tile_instance.transform.localPosition = target_transform.localPosition;
-            SetPositionOnGrid(instance_transform.localPosition);
+            SetPositionOnGrid(target_transform.localPosition);
             return;
         }
         MoveObject(entity_obj, target_obj.transform);
-        Destroy(selected_tile_instance);
+}
+
+
+    public GameObject GetSelTile(){
+        if (selected_tile_instance!=null)
+        {
+            selected_tile_instance=Instantiate(selected_tile_prefab);
+        }
+        return selected_tile_instance;
     }
 
     private void SetPositionOnGrid(Vector3 position)

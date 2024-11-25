@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4002493811461936314}
   - component: {fileID: 1130266499466731530}
   - component: {fileID: 8713313270852756834}
+  - component: {fileID: -2540686203497696796}
   m_Layer: 5
   m_Name: Selected Tile
   m_TagString: Sel_tile
@@ -75,3 +76,15 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &-2540686203497696796
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2314587884983815590}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61e15d25758c8bc49bfb5016b560727c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
