@@ -126,8 +126,6 @@ public class BoardLibrary : MonoBehaviour
     return normalized_value;
 }
 
-
-
 public static (float, float) RevertNormalization(
     (int, int) gridValue,
     (float, float) dimensions_w_h,

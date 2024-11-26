@@ -1,3 +1,4 @@
+using Unity.Burst.CompilerServices;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Scripting;
@@ -10,14 +11,17 @@ public class TileInteraction
         IPointerClickHandler
 {
     BoardScript_V2 main_script;
-    public Image image_child;
+    public Image image_child,image_highlight;
     private SelectionTile sel_tile_script;
-    bool selected = false;
+    bool walkable=false;
+    
+
 
     public void Awake()
     {
-        main_script = GameObject.FindWithTag("GameController").GetComponent<BoardScript_V2>();
-        sel_tile_script= GameObject.FindWithTag("Sel_tile").GetComponent<SelectionTile>();
+        SetWalkableState(false);
+        main_script = GameObject.FindWithTag(Constants.game_controller_object_tag).GetComponent<BoardScript_V2>();
+        sel_tile_script= GameObject.FindWithTag(Constants.selection_object_tag).GetComponent<SelectionTile>();
 
         if (image_child != null)
         {
@@ -32,7 +36,7 @@ public class TileInteraction
     // This will be called when the mouse pointer enters the UI element
     public void OnPointerEnter(PointerEventData eventData)
     {
-        BoardLibrary.SetColorAlpha(image_child, 0.7f);
+        BoardLibrary.SetColorAlpha(image_child, 0.95f);
         //Debug.Log("Mouse entered the tile");
     }
 
@@ -48,7 +52,19 @@ public class TileInteraction
         // Perform any action on click
         BoardLibrary.SetColorAlpha(image_child, 1f);
         sel_tile_script.SetParent(gameObject);
-        
+       // Debug.Log($"Clicked:{gameObject.name}" );
+    }
 
+    public void SetWalkableState(bool walkable){
+        
+        Color new_color= image_highlight.color;
+        if (walkable)
+        {
+            new_color.a=1f;
+        }else
+        {
+            new_color.a=0f;
+        }
+        image_highlight.color=new_color;
     }
 }

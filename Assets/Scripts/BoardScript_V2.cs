@@ -13,12 +13,7 @@ public class BoardScript_V2 : MonoBehaviour
     [SerializeField]
     private EventSystem event_system;
 
-    [SerializeField]
-    private GameObject tile_prefab,
-        selected_tile_prefab;
-
     private SelectionTile sel_tile_script;
-
 
     private static (int, int) board_grid_width_and_height;
     private static (float, float) board_rect_width_and_height;
@@ -30,12 +25,18 @@ public class BoardScript_V2 : MonoBehaviour
     GameObject[,] board_map_layer,
         board_entity_layer,
         board_player_layer;
+    
+    GameObject selected_entity=null;
+
+
+
+    
 
     // Start is called before the first frame update
     void Start()
     {
-        GameObject sel_tile=Instantiate(selected_tile_prefab);
-        sel_tile_script=sel_tile.GetComponent<SelectionTile>();
+        GameObject sel_tile = GameObject.FindWithTag(Constants.selection_object_tag);
+        sel_tile_script = sel_tile.GetComponent<SelectionTile>();
 
         RectTransform board_rect = board_obj.GetComponent<RectTransform>();
         board_rect_width_and_height = (board_rect.rect.width, board_rect.rect.height);
@@ -50,47 +51,51 @@ public class BoardScript_V2 : MonoBehaviour
         board_grid_width_and_height = BoardLibrary.GetWidthAndHeight(board_map_layer);
     }
 
-public void UpdateSelTilePosition(GameObject target_obj){
-    Transform target_transform = target_obj.transform;
-    SetPositionOnGrid(target_transform.localPosition);
-    Vector3 local_position= sel_tile_script.GetLocalPosition();
-    GameObject entity_obj = board_entity_layer[
+    public void UpdateSelTilePosition(GameObject target_obj)
+    {
+        Transform target_transform = target_obj.transform;
+        SetPositionOnGrid(target_transform.localPosition);
+
+        GameObject entity_obj = board_entity_layer[
             current_selection_coord.Item1,
             current_selection_coord.Item2
         ];
-
-    
-        if (entity_obj == null)
-        {
-            local_position = target_transform.localPosition;
-            SetPositionOnGrid(target_transform.localPosition);
-            return;
+        if (selected_entity!=null){
+            Debug.Log("Moving object");
+            MoveObject(selected_entity, target_obj.transform);
+            selected_entity=null;
         }
         
-        EntityInteraction entity = entity_obj.GetComponent<EntityInteraction>();
+        if (entity_obj == null)
+        {
+            sel_tile_script.SetVisibility(true);
+            Debug.Log("No entity object here");
+            return;
+        }
+
+         EntityInteraction entity = entity_obj.GetComponent<EntityInteraction>();
         if (entity == null)
         {
-            local_position = target_transform.localPosition;
-            SetPositionOnGrid(target_transform.localPosition);
+            sel_tile_script.SetVisibility(true);
+            Debug.Log("No component EntityInteraction");
             return;
         }
 
         if (entity.GetPermission() == false)
         {
-            selected_tile_instance.transform.localPosition = target_transform.localPosition;
-            SetPositionOnGrid(target_transform.localPosition);
+            sel_tile_script.SetVisibility(true);
+            Debug.Log("No allowed to interact");
             return;
         }
-        MoveObject(entity_obj, target_obj.transform);
-}
 
-
-    public GameObject GetSelTile(){
-        if (selected_tile_instance!=null)
+        if (selected_entity==null)
         {
-            selected_tile_instance=Instantiate(selected_tile_prefab);
+            sel_tile_script.SetVisibility(true);
+            selected_entity=entity_obj;
+            return;
         }
-        return selected_tile_instance;
+
+        
     }
 
     private void SetPositionOnGrid(Vector3 position)
@@ -107,9 +112,6 @@ public void UpdateSelTilePosition(GameObject target_obj){
 
     private void MoveObject(GameObject entity, Transform target)
     {
-        RectTransform board_rect = board_obj.GetComponent<RectTransform>();
-        float size_x = board_rect.rect.width;
-        float size_y = board_rect.rect.height;
 
         Vector3 origin_pos = entity.transform.localPosition;
 
@@ -159,7 +161,6 @@ public void UpdateSelTilePosition(GameObject target_obj){
         float journeyLength;
         float speed = 100f;
         float startTime;
-        RectTransform rect_transform = board_obj.GetComponent<RectTransform>();
 
         for (int i = 1; i < path.Count; i++)
         {
@@ -209,4 +210,10 @@ public void UpdateSelTilePosition(GameObject target_obj){
         entity.transform.localScale = Vector3.one;
         board_entity_layer[grid_coord.Item1, grid_coord.Item2] = entity;
     }
+
+    public GameObject getBoardObj(){
+        return board_obj;
+    }
+
+    
 }

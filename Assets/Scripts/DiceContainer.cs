@@ -69,7 +69,7 @@ public class DiceContainer : MonoBehaviour
                 dice = InstantiateDice(dice_container_1.transform);
                 dice.tag = Constants.player_1_tag;
 
-                Debug.Log(dice_list_1);
+                
                 dice_list_1.Add(dice);
             }
             else
@@ -77,7 +77,7 @@ public class DiceContainer : MonoBehaviour
                 dice = InstantiateDice(dice_container_2.transform);
                 dice.tag = Constants.player_2_tag;
 
-                Debug.Log(dice_list_2);
+                
                 dice_list_2.Add(dice);
             }
             switch_container = !switch_container;

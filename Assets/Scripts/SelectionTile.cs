@@ -6,7 +6,6 @@ using UnityEngine;
 public class SelectionTile : MonoBehaviour
 {
     private Image image;
-    private GameObject parent;
     private bool visible;
     private BoardScript_V2 main_script;
     
@@ -14,34 +13,38 @@ public class SelectionTile : MonoBehaviour
     void Start()
     {
         image=gameObject.GetComponent<Image>();
-        main_script = GameObject.FindWithTag("GameController").GetComponent<BoardScript_V2>();
+        SetVisibility(false);
+        main_script = GameObject.FindWithTag(Constants.game_controller_object_tag).GetComponent<BoardScript_V2>();
+        
+        gameObject.transform.SetParent(main_script.getBoardObj().transform);
+        
+
     }
     
     public GameObject GetCurrentParent(){
-        return parent;
+        return gameObject.transform.parent.gameObject;
     }
     public void SetParent(GameObject next_parent){
-        
-        bool is_same_parent= next_parent==parent;
+        GameObject current_parent=gameObject.transform.parent.gameObject;
+        bool is_same_parent= next_parent==current_parent;
         if (is_same_parent)
         {
             ToggleVisibility();
         }else
         {
-            SetVisibility(true);
+            SetVisibility(false);
             main_script.UpdateSelTilePosition(next_parent);
+            gameObject.transform.SetParent(next_parent.transform);
             gameObject.transform.localPosition=Vector3.zero;
             gameObject.transform.localScale=Vector3.one;
+
+            
+
         }
-        parent=next_parent;
+        //Debug.Log($"New parent: {next_parent.name}");
     }
     public Vector3 GetLocalPosition(){
-        return parent.transform.localPosition;;
-    }
-    public bool CheckParent(GameObject next_parent){
-        
-        bool verification= next_parent==parent;
-        return verification;
+        return gameObject.transform.parent.transform.localPosition;;
     }
 
     public void SetVisibility(bool state)
@@ -49,11 +52,10 @@ public class SelectionTile : MonoBehaviour
         
         Color new_color=image.color;
         if (state) {
-            new_color.a = 0;
-            
+            new_color.a = 0.7f;
          }
          else {
-            new_color.a = 0.7f;
+            new_color.a = 0;
          }
         image.color=new_color;
     }

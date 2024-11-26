@@ -6,18 +6,82 @@ using UnityEngine;
 
 public class AIScanner : MonoBehaviour
 {
+    public static void ScanForWalkable((int, int) origin, int radius, (int, int)[] bumps)
+    {
+        Dictionary<(int, int), (int, int)[]> dictionary =
+            new Dictionary<(int, int), (int, int)[]>();
+        List<(int, int)> possible_path;
 
-    public static (int, int)[] FindPossiblePaths((int, int) origin, (int, int) target , (int, int) map_dimensions)
+        int i = 1;
+        do
+        {
+            possible_path = new List<(int, int)>();
+
+            i++;
+        } while (i < radius);
+    }
+
+    public static (int, int)[] ScanAreaPossibilities(
+        (int, int) origin,
+        int radius,
+        (int, int)[] bumps
+    )
+    {
+        List<(int, int)> possible_directions = new List<(int, int)>();
+        int i = 0;
+        while (i < radius)
+        {
+            i += 1;
+            (int, int) currentScanPos = (i, 0);
+            Console.WriteLine(currentScanPos);
+
+            for (int j = 0; j < i + 1; j++)
+            {
+                int x = currentScanPos.Item1;
+                int y = currentScanPos.Item2;
+
+                (int, int) direction;
+                direction = (x, y);
+                possible_directions.Add(direction);
+                if (y != 0)
+                {
+                    direction = (x, -y);
+                    possible_directions.Add(direction);
+                }
+                if (x != 0)
+                {
+                    direction = (-x, y);
+                    possible_directions.Add(direction);
+                }
+                if (x != 0 && y != 0)
+                {
+                    direction = (-x, -y);
+                    possible_directions.Add(direction);
+                }
+                if (currentScanPos.Item1 > 0)
+                {
+                    currentScanPos.Item1 -= 1;
+                    currentScanPos.Item2 += 1;
+                }
+            }
+        }
+        return possible_directions.ToArray();
+    }
+
+    public static (int, int)[] FindPossiblePaths(
+        (int, int) origin,
+        (int, int) target,
+        (int, int) map_dimensions
+    )
     {
         List<(int, int)> possible_path = new List<(int, int)>();
         (int, int)[] possible_path_array;
-        List<(int, int)> bumps_list= new List<(int, int)> ();
+        List<(int, int)> bumps_list = new List<(int, int)>();
 
         bumps_list.AddRange(SetMapLimits(map_dimensions));
 
-        bumps_list.Add((0, 2));
+        //bumps_list.Add((0, 2));
         (int, int)[] bumps = bumps_list.ToArray();
-
 
         (int, int) current_pos = new(origin.Item1, origin.Item2);
 
@@ -97,35 +161,97 @@ public class AIScanner : MonoBehaviour
         return possible_path_array;
     }
 
-    private static List<(int, int)> SetMapLimits((int,int) width_and_height){
-        
-        List<(int, int)> bumps_list = new List<(int,int)>();
+    public static (int, int)[] FindPossiblePaths(
+        (int, int) origin,
+        (int, int) target,
+        (int, int)[] bump_list,
+        int max_step_count
+    )
+    {
+        List<(int, int)> possible_path = new List<(int, int)>();
+        (int, int) current_pos = new(origin.Item1, origin.Item2);
+        possible_path.Add(current_pos);
+        Dictionary<(int, int), (int, int)[]> complex_directions_dict =
+            new Dictionary<(int, int), (int, int)[]>();
+        List<(int, int)> blocked_directions = new List<(int, int)>();
+        while (current_pos != target)
+        {
+            (int, int) direction = GetNextStepDirection(current_pos, target, blocked_directions);
+
+            if (direction == (0, 0))
+            {
+                complex_directions_dict.Add(current_pos, blocked_directions.ToArray());
+                blocked_directions.Clear();
+                if (possible_path.Count < 2)
+                {
+                    Debug.Log("Impossible to reach the current path...");
+                    return null;
+                }
+                (int, int) position_before = possible_path[possible_path.Count - 2];
+
+                (int, int) dead_end_direction = (
+                    current_pos.Item1 - position_before.Item1,
+                    current_pos.Item2 - position_before.Item2
+                );
+
+                blocked_directions.Add(dead_end_direction);
+                complex_directions_dict.Add(position_before, blocked_directions.ToArray());
+                blocked_directions.Clear();
+                possible_path.Remove(current_pos);
+                current_pos = position_before;
+                continue;
+            }
+            (int, int) new_position = (
+                current_pos.Item1 + direction.Item1,
+                current_pos.Item2 + direction.Item2
+            );
+
+            if (bump_list.Contains(new_position) || possible_path.Contains(new_position))
+            {
+                //Debug.Log( $"Cant go into {new_position}! It is either a bump or already crossed that" );
+                //Debug.Log($"List size: {possible_path.Count}");
+                blocked_directions.Add(direction);
+                //Debug.Log($"Block List size {blocked_directions.Count}");
+            }
+            else
+            {
+                possible_path.Add(new_position);
+                current_pos = new_position;
+                blocked_directions.Clear();
+            }
+        }
+
+        return possible_path.ToArray();
+        ;
+    }
+
+    private static List<(int, int)> SetMapLimits((int, int) width_and_height)
+    {
+        List<(int, int)> bumps_list = new List<(int, int)>();
 
         //Add bumps for negative x and y limits
         for (int i = 0; i == width_and_height.Item1; i++)
         {
-            bumps_list.Add((-1,i));
+            bumps_list.Add((-1, i));
         }
         for (int i = 0; i == width_and_height.Item2; i++)
         {
-            bumps_list.Add((i,-1));
+            bumps_list.Add((i, -1));
         }
 
         //Add bumps for positive x and y limits
         for (int i = 0; i == width_and_height.Item1; i++)
         {
-            bumps_list.Add((width_and_height.Item1,i));
+            bumps_list.Add((width_and_height.Item1, i));
         }
         for (int i = 0; i == width_and_height.Item2; i++)
         {
-            bumps_list.Add((i,width_and_height.Item2));
+            bumps_list.Add((i, width_and_height.Item2));
         }
-
-
-
 
         return bumps_list;
     }
+
     private static (int, int) GetNextStepDirection(
         (int, int) current_pos,
         (int, int) target_pos,
@@ -182,7 +308,8 @@ public class AIScanner : MonoBehaviour
         int new_y = current_pos.Item2 + direction.Item2;
 
         // Return the Manhattan distance from the new position to the target position
-        return System.Math.Abs(target_pos.Item1 - new_x) + System.Math.Abs(target_pos.Item2 - new_y);
+        return System.Math.Abs(target_pos.Item1 - new_x)
+            + System.Math.Abs(target_pos.Item2 - new_y);
     }
 
     // Helper method to check if the direction is blocked
