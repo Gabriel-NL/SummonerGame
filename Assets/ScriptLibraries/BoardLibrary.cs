@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,7 @@ using UnityEngine.UI;
 
 public class BoardLibrary : MonoBehaviour
 {
-    public static List<Transform> CollectChildren(Transform board_parent)
+    public static Transform[] CollectChildren(Transform board_parent)
     {
         List<Transform> childTransforms = new List<Transform>();
 
@@ -17,24 +18,24 @@ public class BoardLibrary : MonoBehaviour
         {
             childTransforms.Add(child);
         }
-        return childTransforms;
+        return childTransforms.ToArray();
     }
 
-    public static GameObject[,] ListTo2dGrid(List<Transform> childTransforms, bool force_fix)
+    public static GameObject[,] ListTo2dGrid(Transform[] childTransforms, bool force_fix)
     {
-        List<float> unique_x_values = GetCoordinateUniqueValues('x', childTransforms);
-        List<float> unique_y_values = GetCoordinateUniqueValues('y', childTransforms);
+        float[] unique_x_values = GetCoordinateUniqueValues('x', childTransforms);
+        float[] unique_y_values = GetCoordinateUniqueValues('y', childTransforms);
 
         // Create a 2D array to represent the grid
-        int gridWidth = unique_x_values.Count;
-        int gridHeight = unique_y_values.Count;
+        int gridWidth = unique_x_values.Length;
+        int gridHeight = unique_y_values.Length;
 
         GameObject[,] board_map_filled = new GameObject[gridWidth, gridHeight];
 
         foreach (Transform obj in childTransforms)
         {
-            int yIndex = unique_y_values.IndexOf(obj.transform.position.y);
-            int xIndex = unique_x_values.IndexOf(obj.transform.position.x);
+            int yIndex = Array.IndexOf(unique_y_values, obj.transform.position.y);
+            int xIndex = Array.IndexOf(unique_x_values, obj.transform.position.x);
             obj.gameObject.name = $"X:{xIndex} Y:{yIndex}";
             bool is_available = board_map_filled[xIndex, yIndex] == null;
             //false,false= exception
@@ -43,7 +44,7 @@ public class BoardLibrary : MonoBehaviour
             //true,true= ignores and moves on
             if (is_available == false && force_fix == false)
             {
-                throw new System.ArgumentException("The specified position is already occupied!");
+                throw new ArgumentException("The specified position is already occupied!");
             }
             else
             {
@@ -57,25 +58,22 @@ public class BoardLibrary : MonoBehaviour
     public static GameObject[,] CreateNewBoard(
         int grid_x,
         int grid_y,
-        GameObject tile,
-        GameObject parent
+        GameObject tile_prefab,
+        (float, float) new_tile_width_height,
+        Transform parent
     )
     {
         GameObject[,] new_board = new GameObject[grid_x, grid_y];
-        //W.I.P
-        //width=200 height 200
-        //
 
-        float parent_tile_size_width = parent.GetComponent<RectTransform>().rect.width;
-        float parent_tile_size_height = parent.GetComponent<RectTransform>().rect.height;
-        float new_tile_size_width = parent_tile_size_width / grid_x;
-        float new_tile_size_height = parent_tile_size_height / grid_y;
+        float new_tile_size_width,
+            new_tile_size_height;
+        (new_tile_size_width, new_tile_size_height) = new_tile_width_height;
 
         for (int x = 0; x < grid_x; x++)
         {
             for (int y = 0; y < grid_y; y++)
             {
-                GameObject new_tile = Instantiate(tile);
+                GameObject new_tile = Instantiate(tile_prefab);
                 new_tile.name = $"X:{x}/Y:{y}";
 
                 RectTransform rect = new_tile.GetComponent<RectTransform>();
@@ -90,7 +88,7 @@ public class BoardLibrary : MonoBehaviour
                 rect.localPosition = new Vector2(pos_x, pos_y);
 
                 // Optionally, set the new tile's parent
-                new_tile.transform.SetParent(parent.transform, false);
+                new_tile.transform.SetParent(parent, false);
                 new_board[x, y] = new_tile;
             }
         }
@@ -98,54 +96,51 @@ public class BoardLibrary : MonoBehaviour
         return new_board;
     }
 
-    public static GameObject[,] InitializeNewLayer(GameObject[,] map_layer)
+    public static GameObject[,] InitializeNewLayer(int rows, int columns)
     {
-        int width = map_layer.GetLength(0); // Get the number of rows (first dimension)
-        int height = map_layer.GetLength(1); // Get the number of columns (second dimension)
+        int width = rows; // Get the number of rows (first dimension)
+        int height = columns; // Get the number of columns (second dimension)
         GameObject[,] new_layer = new GameObject[width, height];
         return new_layer;
     }
 
     public static (int, int) NormalizeStepValue(
-    (float, float) value,
-    (float, float) dimensions_w_h,
-    (int, int) gridSize
-)
-{
-    // Calculate the step size for each grid cell
-    float stepSizeX = dimensions_w_h.Item1 / (gridSize.Item1 - 1);
-    float stepSizeY = dimensions_w_h.Item2 / (gridSize.Item2 - 1);
+        (float, float) value,
+        (float, float) dimensions_w_h,
+        (int, int) gridSize
+    )
+    {
+        // Calculate the step size for each grid cell
+        float stepSizeX = dimensions_w_h.Item1 / (gridSize.Item1 - 1);
+        float stepSizeY = dimensions_w_h.Item2 / (gridSize.Item2 - 1);
 
-    // Normalize the coordinates
-    int new_x = Mathf.RoundToInt((value.Item1 + (dimensions_w_h.Item1 / 2)) / stepSizeX);
-    int new_y = Mathf.RoundToInt((value.Item2 + (dimensions_w_h.Item2 / 2)) / stepSizeY);
+        // Normalize the coordinates
+        int new_x = Mathf.RoundToInt((value.Item1 + (dimensions_w_h.Item1 / 2)) / stepSizeX);
+        int new_y = Mathf.RoundToInt((value.Item2 + (dimensions_w_h.Item2 / 2)) / stepSizeY);
 
-    (int, int) normalized_value=(new_x, new_y);
-    // Return the normalized grid indices
-    //Debug.Log($"Normalized Value: {normalized_value}");
-    return normalized_value;
-}
+        (int, int) normalized_value = (new_x, new_y);
+        // Return the normalized grid indices
+        //Debug.Log($"Normalized Value: {normalized_value}");
+        return normalized_value;
+    }
 
-public static (float, float) RevertNormalization(
-    (int, int) gridValue,
-    (float, float) dimensions_w_h,
-    (int, int) gridSize
-)
-{
+    public static (float, float) RevertNormalization(
+        (int, int) gridValue,
+        (float, float) dimensions_w_h,
+        (int, int) gridSize
+    )
+    {
+        float stepSizeX = dimensions_w_h.Item1 / gridSize.Item1;
+        float stepSizeY = dimensions_w_h.Item2 / gridSize.Item2;
 
-    float stepSizeX= dimensions_w_h.Item1/ gridSize.Item1;
-    float stepSizeY= dimensions_w_h.Item2/ gridSize.Item2;
-    
-    float new_x=gridValue.Item1*stepSizeX-(dimensions_w_h.Item1-stepSizeX)/2;
-    float new_y=gridValue.Item2*stepSizeY-(dimensions_w_h.Item2-stepSizeY)/2;
+        float new_x = gridValue.Item1 * stepSizeX - (dimensions_w_h.Item1 - stepSizeX) / 2;
+        float new_y = gridValue.Item2 * stepSizeY - (dimensions_w_h.Item2 - stepSizeY) / 2;
 
-    (float, float) denormalized_value = (new_x, new_y);
-     
-    Debug.Log("Denormalization: " + denormalized_value);
-    return denormalized_value;
-}
+        (float, float) denormalized_value = (new_x, new_y);
 
-
+        Debug.Log("Denormalization: " + denormalized_value);
+        return denormalized_value;
+    }
 
     public static GameObject FindChildWithTag(Transform parent, string tag)
     {
@@ -162,25 +157,25 @@ public static (float, float) RevertNormalization(
         return null;
     }
 
-    public static void ShowAllCoordinates(List<Transform> childTransforms, bool is_top_down)
+    public static void ShowAllCoordinates(Transform[] childTransforms, bool is_top_down)
     {
-        List<float> unique_x_values = GetCoordinateUniqueValues('x', childTransforms);
-        List<float> unique_y_values = GetCoordinateUniqueValues('y', childTransforms);
-        List<float> unique_z_values = GetCoordinateUniqueValues('z', childTransforms);
+        float[] unique_x_values = GetCoordinateUniqueValues('x', childTransforms);
+        float[] unique_y_values = GetCoordinateUniqueValues('y', childTransforms);
+        float[] unique_z_values = GetCoordinateUniqueValues('z', childTransforms);
 
         string msg = "";
 
         if (!is_top_down)
         {
             // Assuming childTransforms contains objects with x, y, and z positions
-            for (int z = 0; z < unique_z_values.Count; z++)
+            for (int z = 0; z < unique_z_values.Length; z++)
             {
                 Debug.Log($"Layer {z}: {unique_z_values[z]}");
 
-                for (int x = 0; x < unique_x_values.Count; x++)
+                for (int x = 0; x < unique_x_values.Length; x++)
                 {
                     msg = "";
-                    for (int y = 0; y < unique_y_values.Count; y++)
+                    for (int y = 0; y < unique_y_values.Length; y++)
                     {
                         msg += $"({x}/{y}) / ";
                     }
@@ -191,13 +186,13 @@ public static (float, float) RevertNormalization(
         else
         {
             // Assuming childTransforms contains objects with x, y, and z positions
-            for (int y = 0; y < unique_y_values.Count; y++)
+            for (int y = 0; y < unique_y_values.Length; y++)
             {
                 Debug.Log($"Layer {y + 1}: {unique_y_values[y]}");
-                for (int x = 0; x < unique_x_values.Count; x++)
+                for (int x = 0; x < unique_x_values.Length; x++)
                 {
                     msg = "";
-                    for (int z = 0; z < unique_z_values.Count; z++)
+                    for (int z = 0; z < unique_z_values.Length; z++)
                     {
                         //msg+=$"({x}/{z}), ({unique_x_values[x]}, {unique_z_values[z]}) / ";
                         msg += $"({x}/{z}) / ";
@@ -208,7 +203,7 @@ public static (float, float) RevertNormalization(
         }
     }
 
-    public static List<float> GetCoordinateUniqueValues(char coordinate, List<Transform> transforms)
+    public static float[] GetCoordinateUniqueValues(char coordinate, Transform[] transforms)
     {
         List<float> unique_coordinate_values;
         // Convert the character to uppercase
@@ -246,10 +241,10 @@ public static (float, float) RevertNormalization(
                 Debug.LogWarning("Coordinate invalid: " + coordinate);
                 break;
         }
-        return unique_coordinate_values;
+        return unique_coordinate_values.ToArray();
     }
 
-    public static void ShowUniqueValues(List<float> unique_values, char coordinate)
+    public static void ShowUniqueValues(float[] unique_values, char coordinate)
     {
         string values_string = string.Join(", ", unique_values);
         Debug.Log($"{char.ToUpper(coordinate)} values: {values_string}");

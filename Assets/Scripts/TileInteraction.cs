@@ -11,26 +11,29 @@ public class TileInteraction
         IPointerClickHandler
 {
     BoardScript_V2 main_script;
-    public Image image_child,image_highlight;
+    public Image image_child,
+        image_highlight;
     private SelectionTile sel_tile_script;
-    bool walkable=false;
-    
+    bool walkable = false;
 
-
-    public void Awake()
+    public void Start()
     {
-        SetWalkableState(false);
-        main_script = GameObject.FindWithTag(Constants.game_controller_object_tag).GetComponent<BoardScript_V2>();
-        sel_tile_script= GameObject.FindWithTag(Constants.selection_object_tag).GetComponent<SelectionTile>();
-
-        if (image_child != null)
+        if (image_child == null)
         {
-            Transform image_child_transform = gameObject.transform.Find("Image");
-            image_child = image_child_transform.GetComponent<Image>();
+            image_child = gameObject.transform.Find("Image").GetComponent<Image>();
         }
-    }
-    public void Start(){
+        if (image_highlight == null)
+        {
+            image_highlight = gameObject.transform.Find("Highlight").GetComponent<Image>();
+        }
 
+        SetWalkableState(false);
+        main_script = GameObject
+            .FindWithTag(Constants.game_controller_object_tag)
+            .GetComponent<BoardScript_V2>();
+        sel_tile_script = GameObject
+            .FindWithTag(Constants.selection_object_tag)
+            .GetComponent<SelectionTile>();
     }
 
     // This will be called when the mouse pointer enters the UI element
@@ -52,19 +55,20 @@ public class TileInteraction
         // Perform any action on click
         BoardLibrary.SetColorAlpha(image_child, 1f);
         sel_tile_script.SetParent(gameObject);
-       // Debug.Log($"Clicked:{gameObject.name}" );
+        // Debug.Log($"Clicked:{gameObject.name}" );
     }
 
-    public void SetWalkableState(bool walkable){
-        
-        Color new_color= image_highlight.color;
+    public void SetWalkableState(bool walkable)
+    {
+        Color new_color = image_highlight.color;
         if (walkable)
         {
-            new_color.a=1f;
-        }else
-        {
-            new_color.a=0f;
+            new_color.a = 1f;
         }
-        image_highlight.color=new_color;
+        else
+        {
+            new_color.a = 0f;
+        }
+        image_highlight.color = new_color;
     }
 }

@@ -14,18 +14,23 @@ public class HelloWorld
         (int, int)[] bumps = new (int, int)[] { }; // Example bumps array
         int step_count = 4;
 
-        (int, int)[] path = FindPossiblePaths(origin, target, bumps, step_count);
-        foreach (var item in path)
+        (int, int)[] path = FindPossiblePaths(origin, target, bumps, step_count,15);
+        if (path != null)
         {
-            Console.WriteLine(item);
+            foreach (var item in path)
+            {
+                Console.WriteLine(item);
+            }
         }
     }
+    
 
     public static (int, int)[] FindPossiblePaths(
         (int, int) origin,
         (int, int) target,
         (int, int)[] bump_list,
-        int max_step_count
+        int? max_step_count,
+        int? max_attempt
     )
     {
         List<(int, int)> possible_path = new List<(int, int)>();
@@ -37,6 +42,12 @@ public class HelloWorld
         int iteration = 0;
         while (current_pos != target)
         {
+            if (max_attempt.HasValue && iteration > max_attempt.Value)
+{
+    Console.WriteLine("Can't attempt any more. Path failed.");
+    return null;
+}
+
             Console.WriteLine($"------------------------------");
             Console.WriteLine($"Iteration:{iteration}");
             iteration++;
@@ -59,7 +70,10 @@ public class HelloWorld
                 direction = GetNextStepDirection(current_pos, target, blocked_directions.ToArray());
             }
             //Console.WriteLine($"pos:{current_pos} direction: {direction}");
-            if (direction == (0, 0) || possible_path.Count > max_step_count)
+            if (
+                direction == (0, 0)
+                || (max_step_count.HasValue && possible_path.Count > max_step_count.Value)
+            )
             {
                 Console.WriteLine($"Max limit hit or direction 0");
                 if (complex_directions_dict.ContainsKey(current_pos))
@@ -88,6 +102,7 @@ public class HelloWorld
                     Console.WriteLine("Impossible to reach the current path...");
                     return null;
                 }
+                
                 (int, int) position_before = possible_path[possible_path.Count - 2];
 
                 (int, int) dead_end_direction = (
@@ -179,13 +194,14 @@ public class HelloWorld
         ;
     }
 
+    
+    
     private static (int, int) GetNextStepDirection(
         (int, int) current_pos,
         (int, int) target_pos,
         (int, int)[] blocked_directions // Now using an array
     )
     {
-        
         // List to hold the best directions sorted by distance to target
         (int, int)[] all_possible_directions = new (int, int)[]
         {
@@ -194,8 +210,6 @@ public class HelloWorld
             (1, 0), // Right
             (-1, 0) // Left
         };
-
-        // Convert array to a list and order by Manhattan distance
 
         // Sort directions based on Manhattan distance, and prioritize right/left moves
         // Sort directions based on Manhattan distance to the target
@@ -216,10 +230,10 @@ public class HelloWorld
             );
             Console.WriteLine("List: " + listAsString);
             string blocked = string.Join(
-            ", ",
-            blocked_directions.Select(direction => $"({direction.Item1}, {direction.Item2})")
-        );
-        Console.WriteLine("blocked: " + blocked);
+                ", ",
+                blocked_directions.Select(direction => $"({direction.Item1}, {direction.Item2})")
+            );
+            Console.WriteLine("blocked: " + blocked);
         }
 
         // Iterate through the best directions
@@ -253,3 +267,4 @@ public class HelloWorld
             + System.Math.Abs(target_pos.Item2 - new_y);
     }
 }
+//to run use:    dotnet run

@@ -15,57 +15,65 @@ public class BoardScript_V2 : MonoBehaviour
 
     private SelectionTile sel_tile_script;
 
-    private static (int, int) board_grid_width_and_height;
-    private static (float, float) board_rect_width_and_height;
-
     public int current_selection_coord_x,
         current_selection_coord_y;
     public (int, int) current_selection_coord;
+    private UnityBoardClass board_instance;
 
-    GameObject[,] board_map_layer,
-        board_entity_layer,
-        board_player_layer;
-    
-    GameObject selected_entity=null;
+    GameObject selected_entity = null;
 
-
-
-    
+    public GameObject tile_prefab;
 
     // Start is called before the first frame update
     void Start()
     {
+        RectTransform board_rect = board_obj.GetComponent<RectTransform>();
+        (float, float) board_rect_width_and_height = (
+            board_rect.rect.width,
+            board_rect.rect.height
+        );
+
+        RectTransform rect_tile = tile_prefab.GetComponent<RectTransform>();
+        (float, float) tile_width_height = (rect_tile.rect.width, rect_tile.rect.height);
+
+        Transform[] child_array = BoardLibrary.CollectChildren(board_obj.transform);
+        board_instance = new UnityBoardClass(
+            child_array,
+            tile_width_height,
+            board_rect_width_and_height
+        );
         GameObject sel_tile = GameObject.FindWithTag(Constants.selection_object_tag);
         sel_tile_script = sel_tile.GetComponent<SelectionTile>();
 
-        RectTransform board_rect = board_obj.GetComponent<RectTransform>();
-        board_rect_width_and_height = (board_rect.rect.width, board_rect.rect.height);
-
-        //board_map_layer = BoardLibrary.CreateNewBoard(9,9,tile_prefab,board_obj);
-        List<Transform> child_list = BoardLibrary.CollectChildren(board_obj.transform);
-
-        board_map_layer = BoardLibrary.ListTo2dGrid(child_list, true);
-        board_entity_layer = BoardLibrary.InitializeNewLayer(board_map_layer);
-        board_player_layer = BoardLibrary.InitializeNewLayer(board_map_layer);
-
-        board_grid_width_and_height = BoardLibrary.GetWidthAndHeight(board_map_layer);
+        //public UnityBoardClass(Transform[] all_childs, (float,float) tile_width_height,(float,float) parent_width_height)
     }
 
     public void UpdateSelTilePosition(GameObject target_obj)
     {
         Transform target_transform = target_obj.transform;
-        SetPositionOnGrid(target_transform.localPosition);
+        board_instance.SetPositionOnGrid(target_transform.localPosition);
 
-        GameObject entity_obj = board_entity_layer[
-            current_selection_coord.Item1,
-            current_selection_coord.Item2
-        ];
-        if (selected_entity!=null){
+        if (selected_entity != null)
+        {
             Debug.Log("Moving object");
-            MoveObject(selected_entity, target_obj.transform);
-            selected_entity=null;
+            int radius = 1;
+            (int, int)[] bumps = AIScanner.SetMapLimits(current_selection_coord);
+            var dictionary = AIScanner.ScanForWalkable(
+                GetPositionOnGrid(),
+                radius,
+                bumps,
+                null,
+                null
+            );
+
+            //MoveObject(selected_entity, target_obj.transform);
+            selected_entity = null;
+            return;
         }
-        
+        GameObject entity_obj = board_instance.GetObjectOnEntityLayer(
+            GetXPositionOnGrid(),
+            GetYPositionOnGrid()
+        );
         if (entity_obj == null)
         {
             sel_tile_script.SetVisibility(true);
@@ -73,7 +81,7 @@ public class BoardScript_V2 : MonoBehaviour
             return;
         }
 
-         EntityInteraction entity = entity_obj.GetComponent<EntityInteraction>();
+        EntityInteraction entity = entity_obj.GetComponent<EntityInteraction>();
         if (entity == null)
         {
             sel_tile_script.SetVisibility(true);
@@ -88,69 +96,70 @@ public class BoardScript_V2 : MonoBehaviour
             return;
         }
 
-        if (selected_entity==null)
+        if (selected_entity == null)
         {
             sel_tile_script.SetVisibility(true);
-            selected_entity=entity_obj;
+            selected_entity = entity_obj;
             return;
         }
-
-        
     }
 
-    private void SetPositionOnGrid(Vector3 position)
+    public (int, int) GetPositionOnGrid()
     {
-        (int, int) normalized_current_pos = BoardLibrary.NormalizeStepValue(
-            (position.x, position.y),
-            board_rect_width_and_height,
-            board_grid_width_and_height
-        );
-        Debug.Log("CoordPos:" + normalized_current_pos);
-        current_selection_coord = normalized_current_pos;
-        (current_selection_coord_x, current_selection_coord_y) = current_selection_coord;
+        return current_selection_coord;
     }
+
+    public int GetXPositionOnGrid()
+    {
+        return current_selection_coord.Item1;
+    }
+
+    public int GetYPositionOnGrid()
+    {
+        return current_selection_coord.Item2;
+    }
+
+    private void ShowMovementOptions() { }
 
     private void MoveObject(GameObject entity, Transform target)
     {
-
         Vector3 origin_pos = entity.transform.localPosition;
 
         Vector3 target_pos = target.transform.localPosition;
+        (int, int) origin_x_y_normalized = board_instance.NormalizeStepValue(
+            (origin_pos.x, origin_pos.y)
+        );
 
-        (int, int) origin_x_y_normalized = BoardLibrary.NormalizeStepValue(
-            (origin_pos.x, origin_pos.y),
-            board_rect_width_and_height,
-            board_grid_width_and_height
+        (int, int) target_x_y_normalized = board_instance.NormalizeStepValue(
+            (target_pos.x, target_pos.y)
         );
-        (int, int) target_x_y_normalized = BoardLibrary.NormalizeStepValue(
-            (target_pos.x, target_pos.y),
-            board_rect_width_and_height,
-            board_grid_width_and_height
-        );
+
         Debug.Log($"Origin:{origin_x_y_normalized} Target:{target_x_y_normalized}");
 
-        List<(int, int)> path = AIScanner
-            .FindPossiblePaths(
-                origin_x_y_normalized,
-                target_x_y_normalized,
-                board_grid_width_and_height
-            )
-            .ToList();
+        (int, int)[] path = AIScanner.FindFastestPath(
+            origin_x_y_normalized,
+            target_x_y_normalized,
+            board_instance.GetBoardLimits(),
+            null,
+            null
+        );
 
-        StartCoroutine(MoveObjectCoroutine(entity.transform, path, board_grid_width_and_height));
+        StartCoroutine(
+            MoveObjectCoroutine(entity.transform, path, board_instance.GetGridWidthHeight())
+        );
         int old_x,
             old_y;
         (old_x, old_y) = origin_x_y_normalized;
         int new_x,
             new_y;
         (new_x, new_y) = target_x_y_normalized;
-        board_entity_layer[new_x, new_y] = board_entity_layer[old_x, old_y];
-        board_entity_layer[old_x, old_y] = null;
+
+        board_instance.MoveEntity((new_x, new_y), (old_x, old_y));
     }
 
     private IEnumerator MoveObjectCoroutine(
         Transform entity,
-        List<(int, int)> path,
+        (int, int)[] path,
         (int, int) grid_width_and_height
     )
     {
@@ -162,17 +171,13 @@ public class BoardScript_V2 : MonoBehaviour
         float speed = 100f;
         float startTime;
 
-        for (int i = 1; i < path.Count; i++)
+        for (int i = 1; i < path.Length; i++)
         {
             (float, float) de_normalized_target;
             int path_x = path[i].Item1;
             int path_y = path[i].Item2;
 
-            de_normalized_target = BoardLibrary.RevertNormalization(
-                (path_x, path_y),
-                board_rect_width_and_height,
-                board_grid_width_and_height
-            );
+            de_normalized_target = board_instance.RevertNormalization((path_x, path_y));
 
             target_next_pos = new Vector3(
                 de_normalized_target.Item1,
@@ -204,16 +209,17 @@ public class BoardScript_V2 : MonoBehaviour
     public void AddToEntityTable((int, int) grid_coord, GameObject entity)
     {
         entity.transform.SetParent(board_obj.transform);
-        entity.transform.localPosition = board_map_layer[grid_coord.Item1, grid_coord.Item2]
-            .transform
-            .localPosition;
         entity.transform.localScale = Vector3.one;
-        board_entity_layer[grid_coord.Item1, grid_coord.Item2] = entity;
+
+        Vector3 new_pos = board_instance
+            .GetObjectOnMapLayer(grid_coord.Item1, grid_coord.Item2)
+            .transform.localPosition;
+        entity.transform.localPosition = new_pos;
+        board_instance.CreateValueEntityTable(grid_coord, entity);
     }
 
-    public GameObject getBoardObj(){
+    public GameObject getBoardObj()
+    {
         return board_obj;
     }
-
-    
 }

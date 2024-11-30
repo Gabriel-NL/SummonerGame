@@ -1,31 +1,46 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 public class AIScanner : MonoBehaviour
 {
-    public static void ScanForWalkable((int, int) origin, int radius, (int, int)[] bumps)
-    {
-        Dictionary<(int, int), (int, int)[]> dictionary =
-            new Dictionary<(int, int), (int, int)[]>();
-        List<(int, int)> possible_path;
-
-        int i = 1;
-        do
-        {
-            possible_path = new List<(int, int)>();
-
-            i++;
-        } while (i < radius);
-    }
-
-    public static (int, int)[] ScanAreaPossibilities(
+    public static Dictionary<(int, int), (int, int)[]> ScanForWalkable(
         (int, int) origin,
         int radius,
-        (int, int)[] bumps
+        (int, int)[] bumps,
+        int? max_step_count,
+        int? max_attempt
     )
+    {
+        Dictionary<(int, int), (int, int)[]> walkable_options =
+            new Dictionary<(int, int), (int, int)[]>();
+
+        (int, int)[] possibilities = ScanAreaPossibilities(origin, radius);
+        (int, int) origin_plus_possibility;
+        (int, int)[] fastest_path;
+        foreach (var possibility in possibilities)
+        {
+            origin_plus_possibility = (
+                origin.Item1 + possibility.Item1,
+                origin.Item2 + possibility.Item2
+            );
+            fastest_path = FindFastestPath(
+                origin,
+                origin_plus_possibility,
+                bumps,
+                max_step_count,
+                max_attempt
+            );
+            if (fastest_path != null)
+            {
+                walkable_options.Add(origin_plus_possibility, fastest_path);
+            }
+        }
+        return walkable_options;
+    }
+
+    private static (int, int)[] ScanAreaPossibilities((int, int) origin, int radius)
     {
         List<(int, int)> possible_directions = new List<(int, int)>();
         int i = 0;
@@ -33,7 +48,7 @@ public class AIScanner : MonoBehaviour
         {
             i += 1;
             (int, int) currentScanPos = (i, 0);
-            Console.WriteLine(currentScanPos);
+            Console.WriteLine($"Origin: {origin}");
 
             for (int j = 0; j < i + 1; j++)
             {
@@ -68,104 +83,12 @@ public class AIScanner : MonoBehaviour
         return possible_directions.ToArray();
     }
 
-    public static (int, int)[] FindPossiblePaths(
-        (int, int) origin,
-        (int, int) target,
-        (int, int) map_dimensions
-    )
-    {
-        List<(int, int)> possible_path = new List<(int, int)>();
-        (int, int)[] possible_path_array;
-        List<(int, int)> bumps_list = new List<(int, int)>();
-
-        bumps_list.AddRange(SetMapLimits(map_dimensions));
-
-        //bumps_list.Add((0, 2));
-        (int, int)[] bumps = bumps_list.ToArray();
-
-        (int, int) current_pos = new(origin.Item1, origin.Item2);
-
-        possible_path.Add(current_pos);
-        Dictionary<(int, int), (int, int)[]> complex_directions_dict =
-            new Dictionary<(int, int), (int, int)[]>();
-
-        List<(int, int)> blocked_directions = new List<(int, int)>();
-        while (current_pos != target)
-        {
-            (int, int) direction = GetNextStepDirection(current_pos, target, blocked_directions);
-            //Debug.Log($"");
-            //Debug.Log($"Current: {current_pos}");
-            //Debug.Log($"Direction: {direction}");
-
-            if (direction == (0, 0))
-            {
-                complex_directions_dict.Add(current_pos, blocked_directions.ToArray());
-                blocked_directions.Clear();
-
-                if (possible_path.Count < 2)
-                {
-                    possible_path_array = possible_path.ToArray();
-                    Debug.Log("Impossible to reach the current path...");
-
-                    return possible_path_array;
-                }
-                else
-                {
-                    (int, int) position_before = possible_path[possible_path.Count - 2];
-                    (int, int) dead_end_direction = (
-                        current_pos.Item1 - position_before.Item1,
-                        current_pos.Item2 - position_before.Item2
-                    );
-
-                    blocked_directions.Add(dead_end_direction);
-                    complex_directions_dict.Add(position_before, blocked_directions.ToArray());
-                    blocked_directions.Clear();
-                    possible_path.Remove(current_pos);
-                    current_pos = position_before;
-                }
-
-                continue;
-            }
-
-            (int, int) new_position = (
-                current_pos.Item1 + direction.Item1,
-                current_pos.Item2 + direction.Item2
-            );
-
-            if (bumps.Contains(new_position) || possible_path.Contains(new_position))
-            {
-                //Debug.Log( $"Cant go into {new_position}! It is either a bump or already crossed that" );
-                //Debug.Log($"List size: {possible_path.Count}");
-                blocked_directions.Add(direction);
-                //Debug.Log($"Block List size {blocked_directions.Count}");
-            }
-            else
-            {
-                // Convert the list items to string and join them with a delimiter
-
-                // Print the list in a single line
-                //Debug.Log($"New pos:{new_position}");
-                possible_path.Add(new_position);
-                string listAsString = string.Join(
-                    ", ",
-                    possible_path.Select(pos => $"({pos.Item1}, {pos.Item2})")
-                );
-                //Debug.Log($"Current list:{listAsString}");
-                current_pos = new_position;
-                blocked_directions.Clear();
-            }
-        }
-
-        possible_path_array = possible_path.ToArray();
-
-        return possible_path_array;
-    }
-
-    public static (int, int)[] FindPossiblePaths(
+    public static (int, int)[] FindFastestPath(
         (int, int) origin,
         (int, int) target,
         (int, int)[] bump_list,
-        int max_step_count
+        int? max_step_count,
+        int? max_attempt
     )
     {
         List<(int, int)> possible_path = new List<(int, int)>();
@@ -174,31 +97,250 @@ public class AIScanner : MonoBehaviour
         Dictionary<(int, int), (int, int)[]> complex_directions_dict =
             new Dictionary<(int, int), (int, int)[]>();
         List<(int, int)> blocked_directions = new List<(int, int)>();
+        int iteration = 0;
         while (current_pos != target)
         {
-            (int, int) direction = GetNextStepDirection(current_pos, target, blocked_directions);
-
-            if (direction == (0, 0))
+            if (max_attempt.HasValue && iteration > max_attempt.Value)
             {
-                complex_directions_dict.Add(current_pos, blocked_directions.ToArray());
+                return null;
+            }
+            iteration++;
+            string path = string.Join(
+                ", ",
+                possible_path.Select(direction => $"({direction.Item1}, {direction.Item2})")
+            );
+
+            (int, int) direction;
+            if (complex_directions_dict.ContainsKey(current_pos))
+            {
+                direction = GetNextStepDirection(
+                    current_pos,
+                    target,
+                    complex_directions_dict[current_pos]
+                );
+            }
+            else
+            {
+                direction = GetNextStepDirection(current_pos, target, blocked_directions.ToArray());
+            }
+            if (
+                direction == (0, 0)
+                || (max_step_count.HasValue && possible_path.Count > max_step_count.Value)
+            )
+            {
+                if (complex_directions_dict.ContainsKey(current_pos))
+                {
+                    // Get the existing list of blocked directions
+                    var existingBlockedDirections = complex_directions_dict[current_pos];
+
+                    // Add the new blocked directions without duplicates
+                    var combinedBlockedDirections = existingBlockedDirections
+                        .Concat(blocked_directions) // Concatenate the existing and new blocked directions
+                        .Distinct() // Remove duplicates
+                        .ToArray(); // Convert back to an array (if needed)
+
+                    // Update the dictionary with the combined list
+                    complex_directions_dict[current_pos] = combinedBlockedDirections;
+                }
+                else
+                {
+                    // Add the blocked directions as the value for the current_pos key
+                    complex_directions_dict.Add(current_pos, blocked_directions.ToArray());
+                }
+
                 blocked_directions.Clear();
                 if (possible_path.Count < 2)
                 {
-                    Debug.Log("Impossible to reach the current path...");
                     return null;
                 }
+
                 (int, int) position_before = possible_path[possible_path.Count - 2];
 
                 (int, int) dead_end_direction = (
                     current_pos.Item1 - position_before.Item1,
                     current_pos.Item2 - position_before.Item2
                 );
-
                 blocked_directions.Add(dead_end_direction);
-                complex_directions_dict.Add(position_before, blocked_directions.ToArray());
+
+                if (complex_directions_dict.ContainsKey(position_before))
+                {
+                    // Get the existing list of blocked directions
+                    var existingBlockedDirections = complex_directions_dict[position_before];
+
+                    // Add the new blocked directions without duplicates
+                    var combinedBlockedDirections = existingBlockedDirections
+                        .Concat(blocked_directions) // Concatenate the existing and new blocked directions
+                        .Distinct() // Remove duplicates
+                        .ToArray(); // Convert back to an array (if needed)
+
+                    // Update the dictionary with the combined list
+                    complex_directions_dict[position_before] = combinedBlockedDirections;
+                }
+                else
+                {
+                    // Add the blocked directions as the value for the current_pos key
+                    complex_directions_dict.Add(position_before, blocked_directions.ToArray());
+                }
+
                 blocked_directions.Clear();
                 possible_path.Remove(current_pos);
                 current_pos = position_before;
+
+                continue;
+            }
+            (int, int) new_position = (
+                current_pos.Item1 + direction.Item1,
+                current_pos.Item2 + direction.Item2
+            );
+
+            if (bump_list.Contains(new_position) || possible_path.Contains(new_position))
+            {
+                blocked_directions.Add(direction);
+
+                if (complex_directions_dict.ContainsKey(current_pos))
+                {
+                    // Get the existing list of blocked directions
+                    var existingBlockedDirections = complex_directions_dict[current_pos];
+
+                    // Add the new blocked directions without duplicates
+                    var combinedBlockedDirections = existingBlockedDirections
+                        .Concat(blocked_directions) // Concatenate the existing and new blocked directions
+                        .Distinct() // Remove duplicates
+                        .ToArray(); // Convert back to an array (if needed)
+
+                    // Update the dictionary with the combined list
+                    complex_directions_dict[current_pos] = combinedBlockedDirections;
+                }
+                else
+                {
+                    // Add the blocked directions as the value for the current_pos key
+                    complex_directions_dict.Add(current_pos, blocked_directions.ToArray());
+                }
+                blocked_directions.Clear();
+                continue;
+            }
+
+            possible_path.Add(new_position);
+            current_pos = new_position;
+            blocked_directions.Clear();
+        }
+
+        return possible_path.ToArray();
+        ;
+    }
+
+    public static (int, int)[] DebugFindPossiblePaths(
+        (int, int) origin,
+        (int, int) target,
+        (int, int)[] bump_list,
+        int? max_step_count,
+        int? max_attempt
+    )
+    {
+        List<(int, int)> possible_path = new List<(int, int)>();
+        (int, int) current_pos = new(origin.Item1, origin.Item2);
+        possible_path.Add(current_pos);
+        Dictionary<(int, int), (int, int)[]> complex_directions_dict =
+            new Dictionary<(int, int), (int, int)[]>();
+        List<(int, int)> blocked_directions = new List<(int, int)>();
+        int iteration = 0;
+        while (current_pos != target)
+        {
+            if (max_attempt.HasValue && iteration > max_attempt.Value)
+            {
+                Console.WriteLine("Can't attempt any more. Path failed.");
+                return null;
+            }
+
+            Console.WriteLine($"------------------------------");
+            Console.WriteLine($"Iteration:{iteration}");
+            iteration++;
+            string path = string.Join(
+                ", ",
+                possible_path.Select(direction => $"({direction.Item1}, {direction.Item2})")
+            );
+            Console.WriteLine("path: " + path);
+            (int, int) direction;
+            if (complex_directions_dict.ContainsKey(current_pos))
+            {
+                direction = GetNextStepDirection(
+                    current_pos,
+                    target,
+                    complex_directions_dict[current_pos]
+                );
+            }
+            else
+            {
+                direction = GetNextStepDirection(current_pos, target, blocked_directions.ToArray());
+            }
+            //Console.WriteLine($"pos:{current_pos} direction: {direction}");
+            if (
+                direction == (0, 0)
+                || (max_step_count.HasValue && possible_path.Count > max_step_count.Value)
+            )
+            {
+                Console.WriteLine($"Max limit hit or direction 0");
+                if (complex_directions_dict.ContainsKey(current_pos))
+                {
+                    // Get the existing list of blocked directions
+                    var existingBlockedDirections = complex_directions_dict[current_pos];
+
+                    // Add the new blocked directions without duplicates
+                    var combinedBlockedDirections = existingBlockedDirections
+                        .Concat(blocked_directions) // Concatenate the existing and new blocked directions
+                        .Distinct() // Remove duplicates
+                        .ToArray(); // Convert back to an array (if needed)
+
+                    // Update the dictionary with the combined list
+                    complex_directions_dict[current_pos] = combinedBlockedDirections;
+                }
+                else
+                {
+                    // Add the blocked directions as the value for the current_pos key
+                    complex_directions_dict.Add(current_pos, blocked_directions.ToArray());
+                }
+
+                blocked_directions.Clear();
+                if (possible_path.Count < 2)
+                {
+                    Console.WriteLine("Impossible to reach the current path...");
+                    return null;
+                }
+
+                (int, int) position_before = possible_path[possible_path.Count - 2];
+
+                (int, int) dead_end_direction = (
+                    current_pos.Item1 - position_before.Item1,
+                    current_pos.Item2 - position_before.Item2
+                );
+                blocked_directions.Add(dead_end_direction);
+
+                if (complex_directions_dict.ContainsKey(position_before))
+                {
+                    // Get the existing list of blocked directions
+                    var existingBlockedDirections = complex_directions_dict[position_before];
+
+                    // Add the new blocked directions without duplicates
+                    var combinedBlockedDirections = existingBlockedDirections
+                        .Concat(blocked_directions) // Concatenate the existing and new blocked directions
+                        .Distinct() // Remove duplicates
+                        .ToArray(); // Convert back to an array (if needed)
+
+                    // Update the dictionary with the combined list
+                    complex_directions_dict[position_before] = combinedBlockedDirections;
+                }
+                else
+                {
+                    // Add the blocked directions as the value for the current_pos key
+                    complex_directions_dict.Add(position_before, blocked_directions.ToArray());
+                }
+
+                //Console.WriteLine($"Current pos: {position_before} \\ Blocked directions: {string.Join(", ", blocked_directions)}");
+                blocked_directions.Clear();
+                possible_path.Remove(current_pos);
+                current_pos = position_before;
+                Console.WriteLine("Backtracing...");
+
                 continue;
             }
             (int, int) new_position = (
@@ -212,20 +354,51 @@ public class AIScanner : MonoBehaviour
                 //Debug.Log($"List size: {possible_path.Count}");
                 blocked_directions.Add(direction);
                 //Debug.Log($"Block List size {blocked_directions.Count}");
-            }
-            else
-            {
-                possible_path.Add(new_position);
-                current_pos = new_position;
+                Console.WriteLine("Bumped");
+
+                if (complex_directions_dict.ContainsKey(current_pos))
+                {
+                    // Get the existing list of blocked directions
+                    var existingBlockedDirections = complex_directions_dict[current_pos];
+
+                    // Add the new blocked directions without duplicates
+                    var combinedBlockedDirections = existingBlockedDirections
+                        .Concat(blocked_directions) // Concatenate the existing and new blocked directions
+                        .Distinct() // Remove duplicates
+                        .ToArray(); // Convert back to an array (if needed)
+
+                    // Update the dictionary with the combined list
+                    complex_directions_dict[current_pos] = combinedBlockedDirections;
+                }
+                else
+                {
+                    // Add the blocked directions as the value for the current_pos key
+                    complex_directions_dict.Add(current_pos, blocked_directions.ToArray());
+                }
                 blocked_directions.Clear();
+                continue;
             }
+
+            //Se o passo eh 3+1, e a lista for ter +1, bloqueia
+            /*
+            if (possible_path.Count > max_step_count)
+            {
+                blocked_directions.Add(direction);
+                continue;
+            }
+            */
+
+            possible_path.Add(new_position);
+            current_pos = new_position;
+            blocked_directions.Clear();
+            Console.WriteLine("Added position!");
         }
 
         return possible_path.ToArray();
         ;
     }
 
-    private static List<(int, int)> SetMapLimits((int, int) width_and_height)
+    public static (int, int)[] SetMapLimits((int, int) width_and_height)
     {
         List<(int, int)> bumps_list = new List<(int, int)>();
 
@@ -249,13 +422,13 @@ public class AIScanner : MonoBehaviour
             bumps_list.Add((i, width_and_height.Item2));
         }
 
-        return bumps_list;
+        return bumps_list.ToArray();
     }
 
     private static (int, int) GetNextStepDirection(
         (int, int) current_pos,
         (int, int) target_pos,
-        List<(int, int)> blocked_directions
+        (int, int)[] blocked_directions // Now using an array
     )
     {
         // List to hold the best directions sorted by distance to target
@@ -270,27 +443,36 @@ public class AIScanner : MonoBehaviour
         List<(int, int)> best_directions_order = all_possible_directions
             .OrderBy(d => GetManhattanDistance(current_pos, d, target_pos))
             .ToList();
-
-        // Convert the list items to string and join them with a delimiter
-        string listAsString = string.Join(
-            ", ",
-            best_directions_order.Select(direction => $"({direction.Item1}, {direction.Item2})")
+        (int, int) previous_direction = (
+            -best_directions_order[0].Item1,
+            -best_directions_order[0].Item2
         );
+        best_directions_order.Remove(previous_direction);
 
-        // Print the list in a single line
-        //Debug.Log($"Direction priorities: {listAsString}");
-
-        // Remove the farthest direction (last in the list)
-        best_directions_order.RemoveAt(best_directions_order.Count - 1);
+        if (blocked_directions.Length > 0)
+        {
+            string listAsString = string.Join(
+                ", ",
+                best_directions_order.Select(direction => $"({direction.Item1}, {direction.Item2})")
+            );
+            Console.WriteLine("List: " + listAsString);
+            string blocked = string.Join(
+                ", ",
+                blocked_directions.Select(direction => $"({direction.Item1}, {direction.Item2})")
+            );
+            Console.WriteLine("blocked: " + blocked);
+        }
 
         // Iterate through the best directions
         foreach (var direction in best_directions_order)
         {
-            // If the direction is not blocked, return it
-            if (!blocked_directions.Contains(direction))
+            if (blocked_directions.Contains(direction))
             {
-                return direction;
+                continue; // Skip blocked directions
             }
+
+            // If the direction is not blocked, return it
+            return direction;
         }
 
         // If all directions are blocked, return (0, 0)
@@ -311,9 +493,6 @@ public class AIScanner : MonoBehaviour
         return System.Math.Abs(target_pos.Item1 - new_x)
             + System.Math.Abs(target_pos.Item2 - new_y);
     }
-
-    // Helper method to check if the direction is blocked
-
 
     public static void PrintPath(List<(int, int)> path)
     {
