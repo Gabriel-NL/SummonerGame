@@ -12,20 +12,18 @@ public class Players_script : MonoBehaviour
     public int active_user_id;
     private GameObject[] players= new GameObject[2];
     private int counter = 10; // Counter to be displayed
+     private SelectionTile sel_tile_script;
 
     private void Start()
     {
         // Randomly select the initial active label
-        
-        if (Random.value > 0.5f)
-        {
-            active_user_id=2;
-        }else
-        {
-            active_user_id=1;
-        }
-
+       
         StartingPlayer();
+        
+        sel_tile_script = GameObject
+            .FindWithTag(Constants.selection_object_tag)
+            .GetComponent<SelectionTile>();
+         InstructionsLabel.text=$"Active player:{active_user_id}";
         InitializePlayers();
         SetUser(active_user_id);
     }
@@ -59,6 +57,7 @@ public class Players_script : MonoBehaviour
         active_user_id = (Random.value > 0.5f) ? 1 : 2;
     }
     private void SwitchUser(){
+        sel_tile_script.SetParent();
         if (active_user_id==2)
         {
             active_user_id=1;

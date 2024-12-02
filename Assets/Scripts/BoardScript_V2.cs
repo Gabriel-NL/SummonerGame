@@ -17,12 +17,13 @@ public class BoardScript_V2 : MonoBehaviour
 
     public int current_selection_coord_x,
         current_selection_coord_y;
-    public (int, int) current_selection_coord;
     private UnityBoardClass board_instance;
 
     GameObject selected_entity = null;
 
     public GameObject tile_prefab;
+
+    public bool debug_boolean;
 
     // Start is called before the first frame update
     void Start()
@@ -37,7 +38,8 @@ public class BoardScript_V2 : MonoBehaviour
         (float, float) tile_width_height = (rect_tile.rect.width, rect_tile.rect.height);
 
         Transform[] child_array = BoardLibrary.CollectChildren(board_obj.transform);
-        board_instance = new UnityBoardClass(
+        board_instance=UnityBoardClass.Instance;
+        board_instance.UseExistingBoard(
             child_array,
             tile_width_height,
             board_rect_width_and_height
@@ -47,37 +49,40 @@ public class BoardScript_V2 : MonoBehaviour
 
         //public UnityBoardClass(Transform[] all_childs, (float,float) tile_width_height,(float,float) parent_width_height)
     }
+     public void UpdateSelTilePosition(){
+        selected_entity=null;
+     }
 
     public void UpdateSelTilePosition(GameObject target_obj)
     {
         Transform target_transform = target_obj.transform;
         board_instance.SetPositionOnGrid(target_transform.localPosition);
 
+        
+
         if (selected_entity != null)
         {
-            Debug.Log("Moving object");
+            SeeLogs("Moving object");
             int radius = 1;
-            (int, int)[] bumps = AIScanner.SetMapLimits(current_selection_coord);
+            (int, int)[] bumps = board_instance.GetBoardLimits();
             var dictionary = AIScanner.ScanForWalkable(
-                GetPositionOnGrid(),
+                board_instance.GetCoordinates(),
                 radius,
                 bumps,
                 null,
                 null
             );
 
-            //MoveObject(selected_entity, target_obj.transform);
+            MoveObject(selected_entity, target_obj.transform);
             selected_entity = null;
             return;
         }
-        GameObject entity_obj = board_instance.GetObjectOnEntityLayer(
-            GetXPositionOnGrid(),
-            GetYPositionOnGrid()
-        );
+
+        GameObject entity_obj = board_instance.GetObjectOnEntityLayer();
         if (entity_obj == null)
         {
             sel_tile_script.SetVisibility(true);
-            Debug.Log("No entity object here");
+            SeeLogs("No entity object here");
             return;
         }
 
@@ -85,14 +90,14 @@ public class BoardScript_V2 : MonoBehaviour
         if (entity == null)
         {
             sel_tile_script.SetVisibility(true);
-            Debug.Log("No component EntityInteraction");
+            SeeLogs("No component EntityInteraction");
             return;
         }
 
         if (entity.GetPermission() == false)
         {
             sel_tile_script.SetVisibility(true);
-            Debug.Log("No allowed to interact");
+            SeeLogs("No allowed to interact");
             return;
         }
 
@@ -100,23 +105,9 @@ public class BoardScript_V2 : MonoBehaviour
         {
             sel_tile_script.SetVisibility(true);
             selected_entity = entity_obj;
+            SeeLogs("Entity found and selected");
             return;
         }
-    }
-
-    public (int, int) GetPositionOnGrid()
-    {
-        return current_selection_coord;
-    }
-
-    public int GetXPositionOnGrid()
-    {
-        return current_selection_coord.Item1;
-    }
-
-    public int GetYPositionOnGrid()
-    {
-        return current_selection_coord.Item2;
     }
 
     private void ShowMovementOptions() { }
@@ -124,17 +115,20 @@ public class BoardScript_V2 : MonoBehaviour
     private void MoveObject(GameObject entity, Transform target)
     {
         Vector3 origin_pos = entity.transform.localPosition;
-
         Vector3 target_pos = target.transform.localPosition;
-        (int, int) origin_x_y_normalized = board_instance.NormalizeStepValue(
+
+        SeeLogs($"[Original] origin pos:{origin_pos} target pos:{target_pos}");
+
+        (int, int) origin_x_y_normalized = board_instance.GetNormalizedPos(
             (origin_pos.x, origin_pos.y)
         );
 
-        (int, int) target_x_y_normalized = board_instance.NormalizeStepValue(
+
+        (int, int) target_x_y_normalized = board_instance.GetNormalizedPos(
             (target_pos.x, target_pos.y)
         );
 
-        Debug.Log($"Origin:{origin_x_y_normalized} Target:{target_x_y_normalized}");
+        SeeLogs($"[Normalized] Origin:{origin_x_y_normalized} Target:{target_x_y_normalized}");
 
         (int, int)[] path = AIScanner.FindFastestPath(
             origin_x_y_normalized,
@@ -154,7 +148,7 @@ public class BoardScript_V2 : MonoBehaviour
             new_y;
         (new_x, new_y) = target_x_y_normalized;
 
-        board_instance.MoveEntity((new_x, new_y), (old_x, old_y));
+        board_instance.MoveEntity((old_x, old_y),(new_x, new_y));
     }
 
     private IEnumerator MoveObjectCoroutine(
@@ -163,21 +157,25 @@ public class BoardScript_V2 : MonoBehaviour
         (int, int) grid_width_and_height
     )
     {
-        Debug.Log("Start Moving...");
+        //SeeLogs("Start Moving...");
 
         Vector3 start_pos = entity.localPosition;
         Vector3 target_next_pos;
         float journeyLength;
         float speed = 100f;
         float startTime;
+        int path_x,path_y;
+        (float, float) de_normalized_target;
+        float distanceCovered;
+        float fractionOfJourney;
 
         for (int i = 1; i < path.Length; i++)
         {
-            (float, float) de_normalized_target;
-            int path_x = path[i].Item1;
-            int path_y = path[i].Item2;
+            
+             path_x = path[i].Item1;
+             path_y = path[i].Item2;
 
-            de_normalized_target = board_instance.RevertNormalization((path_x, path_y));
+            de_normalized_target = board_instance.GetDenormalizedPos((path_x, path_y));
 
             target_next_pos = new Vector3(
                 de_normalized_target.Item1,
@@ -187,13 +185,14 @@ public class BoardScript_V2 : MonoBehaviour
 
             journeyLength = Vector3.Distance(start_pos, target_next_pos);
             startTime = Time.time;
-            //Debug.Log($"Next pos: {target_next_pos}");
+            SeeLogs($"Next pos: {target_next_pos}");
 
             // Continue moving until the object reaches the target position
             while (entity.localPosition != target_next_pos)
             {
-                float distanceCovered = (Time.time - startTime) * speed;
-                float fractionOfJourney = distanceCovered / journeyLength;
+                
+                distanceCovered = (Time.time - startTime) * speed;
+                fractionOfJourney = distanceCovered / journeyLength;
 
                 entity.localPosition = Vector3.Lerp(start_pos, target_next_pos, fractionOfJourney);
 
@@ -203,7 +202,7 @@ public class BoardScript_V2 : MonoBehaviour
         }
         event_system.enabled = true;
 
-        Debug.Log("End coroutine");
+        //SeeLogs("End coroutine");
     }
 
     public void AddToEntityTable((int, int) grid_coord, GameObject entity)
@@ -221,5 +220,12 @@ public class BoardScript_V2 : MonoBehaviour
     public GameObject getBoardObj()
     {
         return board_obj;
+    }
+
+    public void SeeLogs( string message){
+        if (debug_boolean)
+        {
+            Debug.Log(message);
+        }
     }
 }

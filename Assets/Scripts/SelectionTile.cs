@@ -21,12 +21,25 @@ public class SelectionTile : MonoBehaviour
     public GameObject GetCurrentParent(){
         return gameObject.transform.parent.gameObject;
     }
+    public void SetParent(){
+         SetVisibility(false); 
+         main_script.UpdateSelTilePosition();
+    }
     public void SetParent(GameObject next_parent){
         GameObject current_parent=gameObject.transform.parent.gameObject;
         bool is_same_parent= next_parent==current_parent;
+        if (is_same_parent && visible==false)
+        {
+           SetVisibility(true); 
+           main_script.UpdateSelTilePosition(next_parent);
+           Debug.Log("Visibility:"+visible);
+           return;
+        }
+
         if (is_same_parent)
         {
             ToggleVisibility();
+            main_script.UpdateSelTilePosition();
         }else
         {
             SetVisibility(false);
@@ -35,6 +48,7 @@ public class SelectionTile : MonoBehaviour
             gameObject.transform.localPosition=Vector3.zero;
             gameObject.transform.localScale=Vector3.one;
         }
+        Debug.Log("Visibility:"+visible);
         //Debug.Log($"New parent: {next_parent.name}");
     }
     public Vector3 GetLocalPosition(){
@@ -51,17 +65,18 @@ public class SelectionTile : MonoBehaviour
             new_color.a = 0;
          }
         image.color=new_color;
+        visible=state;
     }
     public void ToggleVisibility()
     {
         Color new_color=image.color;
         if (visible){
             new_color.a = 0;
-            visible=!visible;   
+            visible=false;   
          }
          else {
             new_color.a = 0.7f;
-            visible=!visible;
+            visible=true;
          }
         image.color=new_color;
     }

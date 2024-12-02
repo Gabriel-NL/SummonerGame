@@ -6285,6 +6285,7 @@ MonoBehaviour:
   current_selection_coord_x: 0
   current_selection_coord_y: 0
   tile_prefab: {fileID: 3215480006649151972, guid: 77609f2613a6db74b978beb4798aedb5, type: 3}
+  debug_boolean: 1
 --- !u!114 &1558010500
 MonoBehaviour:
   m_ObjectHideFlags: 0

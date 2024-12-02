@@ -16,6 +16,8 @@ public class TileInteraction
     private SelectionTile sel_tile_script;
     bool walkable = false;
 
+    private (int,int) grid_position;
+
     public void Start()
     {
         if (image_child == null)
@@ -35,11 +37,17 @@ public class TileInteraction
             .FindWithTag(Constants.selection_object_tag)
             .GetComponent<SelectionTile>();
     }
+    public (int,int) GetGridPosition(){
+        return grid_position;
+    }
+    public void SetGridPosition(int x,int y){
+        grid_position = new (x,y);
+    }
 
     // This will be called when the mouse pointer enters the UI element
     public void OnPointerEnter(PointerEventData eventData)
     {
-        BoardLibrary.SetColorAlpha(image_child, 0.95f);
+        BoardLibrary.SetColorAlpha(image_child, 0.75f);
         //Debug.Log("Mouse entered the tile");
     }
 
@@ -58,10 +66,10 @@ public class TileInteraction
         // Debug.Log($"Clicked:{gameObject.name}" );
     }
 
-    public void SetWalkableState(bool walkable)
+    public void SetWalkableState(bool state)
     {
         Color new_color = image_highlight.color;
-        if (walkable)
+        if (state)
         {
             new_color.a = 1f;
         }
@@ -69,6 +77,7 @@ public class TileInteraction
         {
             new_color.a = 0f;
         }
+        walkable=state;
         image_highlight.color = new_color;
     }
 }

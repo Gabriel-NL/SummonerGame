@@ -74,8 +74,8 @@ public class BoardLibrary : MonoBehaviour
             for (int y = 0; y < grid_y; y++)
             {
                 GameObject new_tile = Instantiate(tile_prefab);
-                new_tile.name = $"X:{x}/Y:{y}";
-
+                new_tile.name = $"X:{x} Y:{y}";
+                
                 RectTransform rect = new_tile.GetComponent<RectTransform>();
                 rect.sizeDelta = new Vector2(new_tile_size_width, new_tile_size_height);
 
@@ -104,43 +104,8 @@ public class BoardLibrary : MonoBehaviour
         return new_layer;
     }
 
-    public static (int, int) NormalizeStepValue(
-        (float, float) value,
-        (float, float) dimensions_w_h,
-        (int, int) gridSize
-    )
-    {
-        // Calculate the step size for each grid cell
-        float stepSizeX = dimensions_w_h.Item1 / (gridSize.Item1 - 1);
-        float stepSizeY = dimensions_w_h.Item2 / (gridSize.Item2 - 1);
+   
 
-        // Normalize the coordinates
-        int new_x = Mathf.RoundToInt((value.Item1 + (dimensions_w_h.Item1 / 2)) / stepSizeX);
-        int new_y = Mathf.RoundToInt((value.Item2 + (dimensions_w_h.Item2 / 2)) / stepSizeY);
-
-        (int, int) normalized_value = (new_x, new_y);
-        // Return the normalized grid indices
-        //Debug.Log($"Normalized Value: {normalized_value}");
-        return normalized_value;
-    }
-
-    public static (float, float) RevertNormalization(
-        (int, int) gridValue,
-        (float, float) dimensions_w_h,
-        (int, int) gridSize
-    )
-    {
-        float stepSizeX = dimensions_w_h.Item1 / gridSize.Item1;
-        float stepSizeY = dimensions_w_h.Item2 / gridSize.Item2;
-
-        float new_x = gridValue.Item1 * stepSizeX - (dimensions_w_h.Item1 - stepSizeX) / 2;
-        float new_y = gridValue.Item2 * stepSizeY - (dimensions_w_h.Item2 - stepSizeY) / 2;
-
-        (float, float) denormalized_value = (new_x, new_y);
-
-        Debug.Log("Denormalization: " + denormalized_value);
-        return denormalized_value;
-    }
 
     public static GameObject FindChildWithTag(Transform parent, string tag)
     {
