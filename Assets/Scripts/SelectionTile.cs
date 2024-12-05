@@ -15,7 +15,7 @@ public class SelectionTile : MonoBehaviour
         image=gameObject.GetComponent<Image>();
         SetVisibility(false);
         main_script = GameObject.FindWithTag(Constants.game_controller_object_tag).GetComponent<BoardScript_V2>();
-        gameObject.transform.SetParent(main_script.getBoardObj().transform);
+        
     }
     
     public GameObject GetCurrentParent(){
@@ -48,7 +48,7 @@ public class SelectionTile : MonoBehaviour
             gameObject.transform.localPosition=Vector3.zero;
             gameObject.transform.localScale=Vector3.one;
         }
-        Debug.Log("Visibility:"+visible);
+        //Debug.Log("Visibility:"+visible);
         //Debug.Log($"New parent: {next_parent.name}");
     }
     public Vector3 GetLocalPosition(){

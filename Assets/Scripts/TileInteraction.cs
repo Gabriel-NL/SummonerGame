@@ -10,16 +10,17 @@ public class TileInteraction
         IPointerExitHandler,
         IPointerClickHandler
 {
-    BoardScript_V2 main_script;
+    private BoardScript_V2 main_script;
     public Image image_child,
         image_highlight;
     private SelectionTile sel_tile_script;
-    bool walkable = false;
+    private bool walkable = false;
 
     private (int,int) grid_position;
 
     public void Start()
     {
+        
         if (image_child == null)
         {
             image_child = gameObject.transform.Find("Image").GetComponent<Image>();
@@ -47,14 +48,14 @@ public class TileInteraction
     // This will be called when the mouse pointer enters the UI element
     public void OnPointerEnter(PointerEventData eventData)
     {
-        BoardLibrary.SetColorAlpha(image_child, 0.75f);
+        ChangeBasedOnState(true);
         //Debug.Log("Mouse entered the tile");
     }
 
     // This will be called when the mouse pointer exits the UI element
     public void OnPointerExit(PointerEventData eventData)
     {
-        BoardLibrary.SetColorAlpha(image_child, 1f);
+        ChangeBasedOnState(false);
     }
 
     // This will be called when the tile is clicked
@@ -64,20 +65,38 @@ public class TileInteraction
         BoardLibrary.SetColorAlpha(image_child, 1f);
         sel_tile_script.SetParent(gameObject);
         // Debug.Log($"Clicked:{gameObject.name}" );
+        ChangeBasedOnState(true);
     }
 
+    public void ChangeBasedOnState(bool hovered){
+        
+        if (walkable&&hovered)
+        {
+           BoardLibrary.SetColorAlpha(image_highlight, 1f);
+           BoardLibrary.SetColorAlpha(image_child, 0.8f);
+        }
+        if (walkable&&hovered==false)
+        {
+            BoardLibrary.SetColorAlpha(image_highlight, 1f);
+            BoardLibrary.SetColorAlpha(image_child, 0.9f);
+        }
+        if (walkable==false&&hovered)
+        {
+            BoardLibrary.SetColorAlpha(image_child, 0.75f);
+        }
+        if (walkable==false&&hovered==false)
+        {
+            BoardLibrary.SetColorAlpha(image_child, 1f); 
+        }
+        
+
+    }
     public void SetWalkableState(bool state)
     {
-        Color new_color = image_highlight.color;
-        if (state)
-        {
-            new_color.a = 1f;
-        }
-        else
-        {
-            new_color.a = 0f;
-        }
         walkable=state;
-        image_highlight.color = new_color;
+        ChangeBasedOnState(false);
+    }
+    public bool GetWalkableState(){
+        return walkable;
     }
 }

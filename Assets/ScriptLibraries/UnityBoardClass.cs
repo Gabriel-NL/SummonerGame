@@ -2,13 +2,14 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UI;
 
 //This class is for 2d only. No flying things
 
 public class UnityBoardClass
 {
-
     // Static variable to hold the single instance
     private static UnityBoardClass instance;
 
@@ -30,6 +31,7 @@ public class UnityBoardClass
             return instance;
         }
     }
+
     // Board layers
     private GameObject[,] board_map_layer;
     private GameObject[,] board_entity_layer;
@@ -49,8 +51,7 @@ public class UnityBoardClass
 
     private (int, int) current_selected_coordinates;
     private (int, int)[] bumps_array;
-
-
+    private (int, int)[] highlighted_coordinates = Array.Empty<(int, int)>();
 
     // Public constructor
     public void UseExistingBoard(
@@ -59,12 +60,10 @@ public class UnityBoardClass
         (float, float) parent_width_height
     )
     {
-        board_map_layer = BoardLibrary.ListTo2dGrid(all_childs, true);
-        (grid_n_columns, grid_n_rows) = BoardLibrary.GetWidthAndHeight(board_map_layer);
-        coordinates = new (float, float)[grid_n_columns, grid_n_rows];
 
         (tile_width, tile_height) = tile_width_height;
         (parent_width, parent_height) = parent_width_height;
+        board_map_layer = BoardLibrary.ListTo2dGrid(all_childs, true);
 
         BuildBoard();
     }
@@ -87,31 +86,43 @@ public class UnityBoardClass
             (tile_width, tile_height),
             parent
         );
+        Transform[] child_array = BoardLibrary.CollectChildren(parent.transform);
+        
+        board_map_layer = BoardLibrary.ListTo2dGrid(child_array, true);
+
         BuildBoard();
     }
 
     private void BuildBoard()
     {
+        foreach (GameObject item in board_map_layer)
+        {
+            if (item.GetComponent<SelectionTile>())
+            {
+                Debug.Log($"Hold up! {item.name} is selection tile!");
+            }
+        }
+        (grid_n_columns, grid_n_rows) = BoardLibrary.GetWidthAndHeight(board_map_layer);
+        coordinates = new (float, float)[grid_n_columns, grid_n_rows];
         string[] parts;
-        string xPart,yPart;
-        int x,y;
+        string xPart,
+            yPart;
+        int x,
+            y;
         foreach (var pos in board_map_layer)
         {
             // Split the string at '/'
             parts = pos.name.Split(' ');
 
             // Extract and parse the X value
-             xPart = parts[0].Split(':')[1]; // Get the value after "X:"
+            xPart = parts[0].Split(':')[1]; // Get the value after "X:"
             x = int.Parse(xPart);
 
             // Extract and parse the Y value
             yPart = parts[1].Split(':')[1]; // Get the value after "Y:"
             y = int.Parse(yPart);
-            
-            coordinates[x,y] = (
-                pos.transform.localPosition.x,
-                pos.transform.localPosition.y
-            );
+
+            coordinates[x, y] = (pos.transform.localPosition.x, pos.transform.localPosition.y);
         }
 
         board_entity_layer = BoardLibrary.InitializeNewLayer(grid_n_columns, grid_n_rows);
@@ -204,5 +215,55 @@ public class UnityBoardClass
     public (int, int) GetCoordinates()
     {
         return current_selected_coordinates;
+    }
+
+    public void HighlightAround()
+    {
+        int radius = 3;
+        (int, int)[] bumps = GetBoardLimits();
+        highlighted_coordinates = AIScanner.ScanForWalkable(
+            GetCoordinates(),
+            radius,
+            bumps,
+            null,
+            null
+        );
+         GameObject tile = null;
+        foreach (var highlighted_coordinate in highlighted_coordinates)
+        {
+            tile = GetObjectOnMapLayer(
+                    highlighted_coordinate.Item1,
+                    highlighted_coordinate.Item2
+                );
+                tile.GetComponent<TileInteraction>().SetWalkableState(true);
+           
+        }
+    }
+
+    public void RemoveHighlight()
+    {
+        if (highlighted_coordinates == null || highlighted_coordinates.Length == 0)
+        {
+            Debug.Log("No coordinate highlighted");
+        }
+        else
+        {
+            foreach (var highlighted_coordinate in highlighted_coordinates)
+            {
+                try
+                {
+                    GetObjectOnMapLayer(highlighted_coordinate.Item1, highlighted_coordinate.Item2)
+                        .GetComponent<TileInteraction>()
+                        .SetWalkableState(false);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.Log(
+                        $"Problematic coord: ({highlighted_coordinate.Item1},{highlighted_coordinate.Item2})"
+                    );
+                    throw;
+                }
+            }
+        }
     }
 }

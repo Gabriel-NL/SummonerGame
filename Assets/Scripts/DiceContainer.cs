@@ -17,7 +17,7 @@ public class DiceContainer : MonoBehaviour
     private List<GameObject> dice_list_2 = new List<GameObject>();
 
     // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
         InitializeDiceQueue();
         StartCoroutine(GenerateDicesWithCooldown());

@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class AIScanner : MonoBehaviour
 {
-    public static Dictionary<(int, int), (int, int)[]> ScanForWalkable(
+    public static (int, int)[] ScanForWalkable(
         (int, int) origin,
         int radius,
         (int, int)[] bumps,
@@ -13,9 +13,9 @@ public class AIScanner : MonoBehaviour
         int? max_attempt
     )
     {
-        Dictionary<(int, int), (int, int)[]> walkable_options =
-            new Dictionary<(int, int), (int, int)[]>();
-
+        List<(int, int)> walkable_options = new List<(int, int)>(); 
+        
+        
         (int, int)[] possibilities = ScanAreaPossibilities(origin, radius);
         (int, int) origin_plus_possibility;
         (int, int)[] fastest_path;
@@ -34,10 +34,11 @@ public class AIScanner : MonoBehaviour
             );
             if (fastest_path != null)
             {
-                walkable_options.Add(origin_plus_possibility, fastest_path);
+                //Debug.Log($"Added entry {origin_plus_possibility}");
+                walkable_options.Add(origin_plus_possibility);
             }
         }
-        return walkable_options;
+        return walkable_options.ToArray();
     }
 
     private static (int, int)[] ScanAreaPossibilities((int, int) origin, int radius)
@@ -87,8 +88,8 @@ public class AIScanner : MonoBehaviour
         (int, int) origin,
         (int, int) target,
         (int, int)[] bump_list,
-        int? max_step_count,
-        int? max_attempt
+        int? max_step_count=null,
+        int? max_attempt=null
     )
     {
         List<(int, int)> possible_path = new List<(int, int)>();
@@ -403,23 +404,23 @@ public class AIScanner : MonoBehaviour
         List<(int, int)> bumps_list = new List<(int, int)>();
 
         //Add bumps for negative x and y limits
-        for (int i = 0; i == width_and_height.Item1; i++)
+        for (int y = 0; y <= width_and_height.Item1; y++)
         {
-            bumps_list.Add((-1, i));
+            bumps_list.Add((-1, y));
         }
-        for (int i = 0; i == width_and_height.Item2; i++)
+        for (int x = 0; x <= width_and_height.Item2; x++)
         {
-            bumps_list.Add((i, -1));
+            bumps_list.Add((x, -1));
         }
 
         //Add bumps for positive x and y limits
-        for (int i = 0; i == width_and_height.Item1; i++)
+        for (int y = 0; y <= width_and_height.Item1; y++)
         {
-            bumps_list.Add((width_and_height.Item1, i));
+            bumps_list.Add((width_and_height.Item1, y));
         }
-        for (int i = 0; i == width_and_height.Item2; i++)
+        for (int x = 0; x <= width_and_height.Item2; x++)
         {
-            bumps_list.Add((i, width_and_height.Item2));
+            bumps_list.Add((x, width_and_height.Item2));
         }
 
         return bumps_list.ToArray();

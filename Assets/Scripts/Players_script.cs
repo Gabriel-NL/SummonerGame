@@ -44,11 +44,13 @@ public class Players_script : MonoBehaviour
         GameObject player;
 
         player=Instantiate(player_prefab);
+        player.name="Player 1";
         player.tag=Constants.player_1_tag;
         players[0]=player;
         board_script.AddToEntityTable((0,4),players[0]);
 
         player=Instantiate(player_prefab);
+        player.name="Player 2";
         player.tag=Constants.player_2_tag;
         players[1]=player;
         board_script.AddToEntityTable((8,4),players[1]);
@@ -58,6 +60,7 @@ public class Players_script : MonoBehaviour
     }
     private void SwitchUser(){
         sel_tile_script.SetParent();
+        UnityBoardClass.Instance.RemoveHighlight();
         if (active_user_id==2)
         {
             active_user_id=1;
