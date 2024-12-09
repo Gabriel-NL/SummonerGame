@@ -10,7 +10,6 @@ public class TileInteraction
         IPointerExitHandler,
         IPointerClickHandler
 {
-    private BoardScript_V2 main_script;
     public Image image_child,
         image_highlight;
     private SelectionTile sel_tile_script;
@@ -21,19 +20,7 @@ public class TileInteraction
     public void Start()
     {
         
-        if (image_child == null)
-        {
-            image_child = gameObject.transform.Find("Image").GetComponent<Image>();
-        }
-        if (image_highlight == null)
-        {
-            image_highlight = gameObject.transform.Find("Highlight").GetComponent<Image>();
-        }
-
         SetWalkableState(false);
-        main_script = GameObject
-            .FindWithTag(Constants.game_controller_object_tag)
-            .GetComponent<BoardScript_V2>();
         sel_tile_script = GameObject
             .FindWithTag(Constants.selection_object_tag)
             .GetComponent<SelectionTile>();
@@ -63,7 +50,6 @@ public class TileInteraction
     {
         // Perform any action on click
         BoardLibrary.SetColorAlpha(image_child, 1f);
-        sel_tile_script.SetParent(gameObject);
         // Debug.Log($"Clicked:{gameObject.name}" );
         ChangeBasedOnState(true);
     }

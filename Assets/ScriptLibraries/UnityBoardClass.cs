@@ -49,7 +49,6 @@ public class UnityBoardClass
     private float position_pivot_x;
     private float position_pivot_y;
 
-    private (int, int) current_selected_coordinates;
     private (int, int)[] bumps_array;
     private (int, int)[] highlighted_coordinates = Array.Empty<(int, int)>();
 
@@ -60,7 +59,6 @@ public class UnityBoardClass
         (float, float) parent_width_height
     )
     {
-
         (tile_width, tile_height) = tile_width_height;
         (parent_width, parent_height) = parent_width_height;
         board_map_layer = BoardLibrary.ListTo2dGrid(all_childs, true);
@@ -87,7 +85,7 @@ public class UnityBoardClass
             parent
         );
         Transform[] child_array = BoardLibrary.CollectChildren(parent.transform);
-        
+
         board_map_layer = BoardLibrary.ListTo2dGrid(child_array, true);
 
         BuildBoard();
@@ -140,14 +138,6 @@ public class UnityBoardClass
         return board_entity_layer[x, y];
     }
 
-    public GameObject GetObjectOnEntityLayer()
-    {
-        return board_entity_layer[
-            current_selected_coordinates.Item1,
-            current_selected_coordinates.Item2
-        ];
-    }
-
     public (int, int) GetNormalizedPos((float, float) value)
     {
         // Iterate through the 2D array
@@ -194,6 +184,10 @@ public class UnityBoardClass
     {
         board_entity_layer[grid_coord.Item1, grid_coord.Item2] = entity;
     }
+    public void DelValueEntityTable((int, int) grid_coord){
+        
+        board_entity_layer[grid_coord.Item1, grid_coord.Item2]=null;
+    }
 
     public void MoveEntity((int, int) old_coord, (int, int) new_coord)
     {
@@ -205,38 +199,54 @@ public class UnityBoardClass
         Debug.Log($"Entity now on {new_coord}");
     }
 
-    public void SetPositionOnGrid(Vector3 position)
+    public void HighlightAround(string tag, int radius, int x_coord, int y_coord)
     {
-        (int, int) normalized_current_pos = GetNormalizedPos((position.x, position.y));
-        Debug.Log("CoordPos:" + normalized_current_pos);
-        current_selected_coordinates = normalized_current_pos;
-    }
-
-    public (int, int) GetCoordinates()
-    {
-        return current_selected_coordinates;
-    }
-
-    public void HighlightAround()
-    {
-        int radius = 3;
         (int, int)[] bumps = GetBoardLimits();
+        List<(int, int)> bump_list = bumps.ToList();
+        foreach (var item in board_entity_layer)
+        {
+            if (item != null)
+            {
+                // Assuming board_entity_layer is a 2D array
+                for (int x = 0; x < board_entity_layer.GetLength(0); x++)
+                {
+                    for (int y = 0; y < board_entity_layer.GetLength(1); y++)
+                    {
+
+                        if (
+                            board_entity_layer[x, y] != null
+                            && board_entity_layer[x, y].gameObject.CompareTag(tag)
+                        )
+                        {
+                            bump_list.Add((x, y));
+                        }
+                    }
+                }
+            }
+        }
+        List<(int, int)> new_bump_list = new List<(int, int)>();
+        foreach (var item in bump_list)
+        {
+            if (new_bump_list.Contains(item) == false)
+            {
+                new_bump_list.Add(item);
+            }
+        }
+        new_bump_list.Remove((x_coord, y_coord));
+        bumps = new_bump_list.ToArray();
+
         highlighted_coordinates = AIScanner.ScanForWalkable(
-            GetCoordinates(),
+            (x_coord, y_coord),
             radius,
             bumps,
             null,
             null
         );
-         GameObject tile = null;
+        GameObject tile = null;
         foreach (var highlighted_coordinate in highlighted_coordinates)
         {
-            tile = GetObjectOnMapLayer(
-                    highlighted_coordinate.Item1,
-                    highlighted_coordinate.Item2
-                );
-                tile.GetComponent<TileInteraction>().SetWalkableState(true);
-           
+            tile = GetObjectOnMapLayer(highlighted_coordinate.Item1, highlighted_coordinate.Item2);
+            tile.GetComponent<TileInteraction>().SetWalkableState(true);
         }
     }
 
@@ -256,7 +266,7 @@ public class UnityBoardClass
                         .GetComponent<TileInteraction>()
                         .SetWalkableState(false);
                 }
-                catch (System.Exception e)
+                catch (Exception e)
                 {
                     Debug.Log(
                         $"Problematic coord: ({highlighted_coordinate.Item1},{highlighted_coordinate.Item2})"

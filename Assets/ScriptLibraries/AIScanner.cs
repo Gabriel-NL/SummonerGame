@@ -13,9 +13,8 @@ public class AIScanner : MonoBehaviour
         int? max_attempt
     )
     {
-        List<(int, int)> walkable_options = new List<(int, int)>(); 
-        
-        
+        List<(int, int)> walkable_options = new List<(int, int)>();
+
         (int, int)[] possibilities = ScanAreaPossibilities(origin, radius);
         (int, int) origin_plus_possibility;
         (int, int)[] fastest_path;
@@ -88,8 +87,8 @@ public class AIScanner : MonoBehaviour
         (int, int) origin,
         (int, int) target,
         (int, int)[] bump_list,
-        int? max_step_count=null,
-        int? max_attempt=null
+        int? max_step_count = null,
+        int? max_attempt = null
     )
     {
         List<(int, int)> possible_path = new List<(int, int)>();
@@ -404,21 +403,21 @@ public class AIScanner : MonoBehaviour
         List<(int, int)> bumps_list = new List<(int, int)>();
 
         //Add bumps for negative x and y limits
-        for (int y = 0; y <= width_and_height.Item1; y++)
+        for (int y = -1; y < width_and_height.Item1; y++)
         {
             bumps_list.Add((-1, y));
         }
-        for (int x = 0; x <= width_and_height.Item2; x++)
+        for (int x = -1; x < width_and_height.Item2; x++)
         {
             bumps_list.Add((x, -1));
         }
 
         //Add bumps for positive x and y limits
-        for (int y = 0; y <= width_and_height.Item1; y++)
+        for (int y = -1; y < width_and_height.Item1; y++)
         {
             bumps_list.Add((width_and_height.Item1, y));
         }
-        for (int x = 0; x <= width_and_height.Item2; x++)
+        for (int x = -1; x < width_and_height.Item2; x++)
         {
             bumps_list.Add((x, width_and_height.Item2));
         }

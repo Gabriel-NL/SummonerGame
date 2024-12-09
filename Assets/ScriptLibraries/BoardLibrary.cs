@@ -75,7 +75,7 @@ public class BoardLibrary : MonoBehaviour
             {
                 GameObject new_tile = Instantiate(tile_prefab);
                 new_tile.name = $"X:{x} Y:{y}";
-                
+
                 RectTransform rect = new_tile.GetComponent<RectTransform>();
                 rect.sizeDelta = new Vector2(new_tile_size_width, new_tile_size_height);
 
@@ -103,9 +103,6 @@ public class BoardLibrary : MonoBehaviour
         GameObject[,] new_layer = new GameObject[width, height];
         return new_layer;
     }
-
-   
-
 
     public static GameObject FindChildWithTag(Transform parent, string tag)
     {
@@ -245,5 +242,20 @@ public class BoardLibrary : MonoBehaviour
     public static int GetHeight(GameObject[,] board_array)
     {
         return board_array.GetLength(0);
+    }
+
+    public static void DebugText(string text, bool enable)
+    {
+        if (enable == false)
+        {
+            return;
+        }
+        Debug.Log(text);
+    }
+
+    public static void MoveChildToBottom(Transform child)
+    {
+        child.SetSiblingIndex(child.parent.childCount - 1);
+        // Check if the child belongs to the given parent
     }
 }
