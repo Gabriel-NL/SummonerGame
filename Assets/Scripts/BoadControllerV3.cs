@@ -4,6 +4,7 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class BoardControllerV3 : MonoBehaviour
@@ -717,6 +718,7 @@ public class BoardControllerV3 : MonoBehaviour
                 Debug.Log($"Pos death: {pos}");
                     board_instance.DelValueEntityTable(pos);
                 Destroy(def.gameObject);
+                CheckForVictory();
 
             }else
             {
@@ -789,6 +791,21 @@ public class BoardControllerV3 : MonoBehaviour
             BoardLibrary.SetColorAlpha(shadow, 0);
             shadow.raycastTarget = false;
             ExpectingDice(false);
+        }
+    }
+
+    public void CheckForVictory(){
+        if (p1_entities_list.Count<=1)
+        {
+            PlayerPrefs.SetString("Winner", "Player 2 Wins!");
+            SceneManager.LoadScene("VictoryScene");
+            return;
+        }
+        if (p2_entities_list.Count<=1)
+        {
+           PlayerPrefs.SetString("Winner", "Player 1 Wins!");
+            SceneManager.LoadScene("VictoryScene");
+            return; 
         }
     }
 }
